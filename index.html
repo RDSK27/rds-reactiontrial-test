@@ -370,7 +370,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v13</div>
+    <div class="app-ver">v14</div>
     </div>
 
   </main>
@@ -590,7 +590,7 @@ function setSeg(id,val){
 }
 
 /* ---------- Estado ---------- */
-var S={ s1:'a', s2:'a', s3:'a', name:'RDS', sport:'', t0:0, times:[],
+var S={ s1:'a', s2:'a', s3:'a', name:'RDS', sport:'', t0:0, times:[], roundsDone:0,
         activeAccum:0, roundStart:null,
         resAvg:NaN, resTotal:0, resEnsayos:0, saved:null,
         lastRec:null, lastRecKey:null, rankKey:null };
@@ -636,7 +636,7 @@ var N={ phase:'idle', occ:[4,5], placePid:{'4':null,'5':null}, ptrPod:{}, to:[],
    de contador de ensayos, para que al retirarse el mensaje no cambie nada
    de tamano: es la misma caja de altura fija, solo cambia el texto. */
 function setNormalMsg(t){ var m=$('normalMsg'); if(m) m.textContent=t||''; }
-function updateNormalCount(){ setNormalMsg(S.times.length+'/'+S.total); }
+function updateNormalCount(){ setNormalMsg(S.roundsDone+'/'+S.total); }
 function trialIndUpdate(){
   var n=S.times.length, i, sum=0;
   for(i=0;i<n;i++) sum+=S.times[i];
@@ -661,7 +661,7 @@ function failRun(msg){
    fijo) -> se sueltan y se tocan los 2 nuevos, en cualquier orden. */
 function normalReset(){
   N.phase='placing'; N.occ=[4,5]; N.placePid={'4':null,'5':null}; N.ptrPod={}; N.to=[]; N.landed=[false,false]; N.tStart=0;
-  S.total=parseInt(S.s2,10)||15; S.times=[]; S.activeAccum=0; S.roundStart=null;
+  S.total=parseInt(S.s2,10)||15; S.times=[]; S.roundsDone=0; S.activeAccum=0; S.roundStart=null;
   TOUCHES={};
   trialIndStop();
   $('indAvg').textContent='—'; $('indLast').textContent='—'; $('indTotal').textContent='0:00.0';
@@ -692,9 +692,9 @@ function normalPointerDown(e){
     N.ptrPod[e.pointerId]=Number(i);
     pod.style.setProperty('--pod-color','#8a8a8a');
     var allDone=N.landed[0] && N.landed[1];
-    if(allDone) bankActiveTime();
+    if(allDone){ bankActiveTime(); S.roundsDone++; }
     updateNormalCount(); trialIndUpdate();
-    if(S.times.length>=S.total){ N.phase='done'; bankActiveTime(); trialIndStop(); finish(); return; }
+    if(allDone && S.roundsDone>=S.total){ N.phase='done'; bankActiveTime(); trialIndStop(); finish(); return; }
     if(allDone){
       N.occ=N.to.slice();
       if(S.s3==='pausa'){
@@ -773,7 +773,7 @@ function normalInit(){
 var EN={ phase:'idle', occ:[6,8], placePid:{'6':null,'8':null}, ptrPod:{}, to:[], landed:[false,false], oldUp:[false,false], tStart:0 };
 function extremoGameReset(){
   EN.phase='placing'; EN.occ=[6,8]; EN.placePid={'6':null,'8':null}; EN.ptrPod={}; EN.to=[]; EN.landed=[false,false]; EN.oldUp=[false,false]; EN.tStart=0;
-  S.total=parseInt(S.s2,10)||15; S.times=[]; S.activeAccum=0; S.roundStart=null;
+  S.total=parseInt(S.s2,10)||15; S.times=[]; S.roundsDone=0; S.activeAccum=0; S.roundStart=null;
   TOUCHES={};
   trialIndStop();
   $('indAvg').textContent='—'; $('indLast').textContent='—'; $('indTotal').textContent='0:00.0';
@@ -803,9 +803,10 @@ function extremoPointerDown(e){
     S.times.push(Math.round(rt));
     EN.ptrPod[e.pointerId]=Number(i);
     pod.classList.add('pressed'); pod.style.setProperty('--pod-color','#8a8a8a');
-    if(EN.landed[0] && EN.landed[1]) bankActiveTime();
+    var allDone=EN.landed[0] && EN.landed[1];
+    if(allDone){ bankActiveTime(); S.roundsDone++; }
     updateNormalCount(); trialIndUpdate();
-    if(S.times.length>=S.total){ EN.phase='done'; bankActiveTime(); trialIndStop(); finish(); return; }
+    if(allDone && S.roundsDone>=S.total){ EN.phase='done'; bankActiveTime(); trialIndStop(); finish(); return; }
     if(EN.landed[0] && EN.landed[1]){
       EN.occ=EN.to.slice();
       if(S.s3==='pausa'){
@@ -886,7 +887,7 @@ function extremoInit(){
 var LM={ phase:'idle', occ:[4,5], placePid:{'4':null,'5':null}, ptrPod:{}, from:-1, to:-1, tStart:0, complexCount:0 };
 function limiteGameReset(){
   LM.phase='placing'; LM.occ=[4,5]; LM.placePid={'4':null,'5':null}; LM.ptrPod={}; LM.from=-1; LM.to=-1; LM.tStart=0; LM.complexCount=0;
-  S.total=parseInt(S.s2,10)||15; S.times=[]; S.activeAccum=0; S.roundStart=null;
+  S.total=parseInt(S.s2,10)||15; S.times=[]; S.roundsDone=0; S.activeAccum=0; S.roundStart=null;
   TOUCHES={};
   trialIndStop();
   $('indAvg').textContent='—'; $('indLast').textContent='—'; $('indTotal').textContent='0:00.0';
@@ -915,8 +916,9 @@ function limitePointerDown(e){
     LM.ptrPod[e.pointerId]=Number(LM.to);
     pod.style.setProperty('--pod-color','#8a8a8a');
     bankActiveTime();
+    S.roundsDone++;
     updateNormalCount(); trialIndUpdate();
-    if(S.times.length>=S.total){ LM.phase='done'; trialIndStop(); finish(); return; }
+    if(S.roundsDone>=S.total){ LM.phase='done'; trialIndStop(); finish(); return; }
     if(S.s3==='pausa'){
       LM.phase='pause';
       var w=500+Math.random()*1500;
@@ -1010,6 +1012,7 @@ function generarStub(){
   var n=8, i;
   S.times=[];
   for(i=0;i<n;i++){ S.times.push(Math.round(180+Math.random()*320)); }
+  S.roundsDone=n;
   S.roundStart=null; S.activeAccum=2000+Math.random()*4000;
   finish();
 }
@@ -1065,7 +1068,7 @@ function finish(){
   $('rV2').textContent=fmtTime(total);
   $('rV3').textContent=Math.round(c.best)+' '+UNIDAD;
   $('rV4').textContent=Math.round(c.worst)+' '+UNIDAD;
-  S.resAvg=c.avg; S.resTotal=total; S.resEnsayos=c.n; S.saved=false;
+  S.resAvg=c.avg; S.resTotal=total; S.resEnsayos=S.roundsDone; S.saved=false;
   renderChart(S.times);
   var gb=$('btnGuardar'); if(gb){ gb.disabled=false; gb.textContent='Guardar resultado'; }
   showSaveScreen();
