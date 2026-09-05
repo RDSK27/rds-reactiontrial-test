@@ -156,6 +156,7 @@ if('serviceWorker' in navigator){
   .trial-arena .pod{ position:relative; width:100%; aspect-ratio:1; border-radius:20px; box-sizing:border-box; padding:0; border:none; cursor:pointer; -webkit-tap-highlight-color:transparent; touch-action:none; background:conic-gradient(#ffffff,#9a9a9a,#e8e8e8,#5a5a5a,#ffffff,#8a8a8a,#dcdcdc,#666666,#ffffff); box-shadow:0 3px 7px rgba(0,0,0,.5); transition:box-shadow .06s ease, transform .06s ease; }
   .trial-arena .pod::before{ content:''; position:absolute; inset:4px; border-radius:14px; background:radial-gradient(circle at 35% 30%, #3a3a3a 0%, #1a1a1a 50%, #050505 100%); box-shadow:inset 0 2px 4px rgba(255,255,255,.22), inset 0 -3px 6px rgba(0,0,0,.6); }
   .trial-arena .pod.lit::before{ background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.30) 0%, rgba(255,255,255,0) 46%), radial-gradient(circle at 50% 82%, rgba(0,0,0,.40) 0%, rgba(0,0,0,0) 58%), var(--pod-color,#e23b2e); box-shadow:inset 0 2px 4px rgba(255,255,255,.28), inset 0 -3px 6px rgba(0,0,0,.5); }
+  .trial-arena .pod.pressed::before{ background:#ffffff; box-shadow:inset 0 2px 4px rgba(255,255,255,.28), inset 0 -3px 6px rgba(0,0,0,.5); }
   .trial-ind{display:flex;background:#111;border-bottom:1px solid #333;flex-shrink:0;width:100%;}
   .trial-ind>div{flex:1;text-align:center;padding:6px 2px;border-right:1px solid #2b2b2b;}
   .trial-ind>div:last-child{border-right:0;}
@@ -369,7 +370,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v7</div>
+    <div class="app-ver">v8</div>
     </div>
 
   </main>
@@ -781,31 +782,33 @@ function normalInit(){
   document.addEventListener('pointercancel', normalPointerUp);
 }
 
-/* ---------- Modo Extremo: 9 pods fijos (3x3), 3 dedos, los 3 saltan a la vez ---------- */
-/* Prueba: los 3 estimulos cambian a la vez y no hay ningun dedo fijo -> se
-   levantan y "saltan" los 3 a las 3 marcas nuevas, en cualquier orden, sin
-   restriccion de soltar antes o despues. */
-var EN={ phase:'idle', occ:[6,7,8], placePid:{'6':null,'7':null,'8':null}, ptrPod:{}, to:[], landed:[false,false,false], tStart:0 };
+/* ---------- Modo Extremo: 9 pods fijos (3x3), los 2 estimulos se marcan a la vez ---------- */
+/* Se marcan los 2 objetivos a la vez, pero se resuelven de uno en uno: hay que
+   mantener uno de los 2 dedos antiguos puesto mientras se mueve el otro. Si
+   los 2 dedos antiguos se levantan sin que ninguno haya aterrizado todavia en
+   su nueva marca, es fallo (como soltar el dedo fijo en Normal). El cuadrado
+   que se tiene tocado se pone blanco hasta que se suelta. */
+var EN={ phase:'idle', occ:[6,8], placePid:{'6':null,'8':null}, ptrPod:{}, to:[], landed:[false,false], oldUp:[false,false], tStart:0 };
 function extremoGameReset(){
-  EN.phase='placing'; EN.occ=[6,7,8]; EN.placePid={'6':null,'7':null,'8':null}; EN.ptrPod={}; EN.to=[]; EN.landed=[false,false,false]; EN.tStart=0;
+  EN.phase='placing'; EN.occ=[6,8]; EN.placePid={'6':null,'8':null}; EN.ptrPod={}; EN.to=[]; EN.landed=[false,false]; EN.oldUp=[false,false]; EN.tStart=0;
   S.total=parseInt(S.s2,10)||15; S.times=[]; S.activeAccum=0; S.roundStart=null;
   TOUCHES={};
   trialIndStop();
   $('indAvg').textContent='—'; $('indLast').textContent='—'; $('indTotal').textContent='0:00.0';
-  for(var i=0;i<9;i++){ var p=$('epod'+i); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); } }
-  setNormalMsg('Coloca 3 dedos en los cuadrados de abajo');
+  for(var i=0;i<9;i++){ var p=$('epod'+i); if(p){ p.classList.remove('lit','pressed'); p.style.removeProperty('--pod-color'); } }
+  setNormalMsg('Coloca 2 dedos en los cuadrados de abajo');
 }
 function extremoPointerDown(e){
   var pod=e.target.closest('.pod'); if(!pod) return;
   var i=pod.getAttribute('data-i');
   if(EN.phase==='placing'){
-    if(i!=='6' && i!=='7' && i!=='8') return;
+    if(i!=='6' && i!=='8') return;
     if(EN.placePid[i]!==null) return;
     e.preventDefault();
     EN.placePid[i]=e.pointerId;
-    pod.classList.add('lit'); pod.style.setProperty('--pod-color','#8a8a8a');
-    if(EN.placePid['6']!==null && EN.placePid['7']!==null && EN.placePid['8']!==null){
-      EN.ptrPod[EN.placePid['6']]=6; EN.ptrPod[EN.placePid['7']]=7; EN.ptrPod[EN.placePid['8']]=8;
+    pod.classList.add('lit','pressed'); pod.style.setProperty('--pod-color','#8a8a8a');
+    if(EN.placePid['6']!==null && EN.placePid['8']!==null){
+      EN.ptrPod[EN.placePid['6']]=6; EN.ptrPod[EN.placePid['8']]=8;
       extremoStartCountdown();
     }
     return;
@@ -817,12 +820,11 @@ function extremoPointerDown(e){
     var rt=performance.now()-EN.tStart;
     S.times.push(Math.round(rt));
     EN.ptrPod[e.pointerId]=Number(i);
-    pod.style.setProperty('--pod-color','#8a8a8a');
-    var allDone=EN.landed[0] && EN.landed[1] && EN.landed[2];
-    if(allDone) bankActiveTime();
+    pod.classList.add('pressed'); pod.style.setProperty('--pod-color','#8a8a8a');
+    if(EN.landed[0] && EN.landed[1]) bankActiveTime();
     updateNormalCount(); trialIndUpdate();
     if(S.times.length>=S.total){ EN.phase='done'; bankActiveTime(); trialIndStop(); finish(); return; }
-    if(allDone){
+    if(EN.landed[0] && EN.landed[1]){
       EN.occ=EN.to.slice();
       if(S.s3==='pausa'){
         EN.phase='pause';
@@ -855,16 +857,15 @@ function extremoStartCountdown(){
 function extremoNextTrial(){
   EN.phase='live';
   var free=[]; for(var i=0;i<9;i++){ if(EN.occ.indexOf(i)<0) free.push(i); }
-  var to=[];
-  for(var k=0;k<3;k++){
-    var j=Math.floor(Math.random()*free.length);
-    to.push(free.splice(j,1)[0]);
-  }
-  EN.to=to; EN.landed=[false,false,false];
-  for(var m=0;m<3;m++){
-    var fp=$('epod'+EN.occ[m]); if(fp){ fp.classList.remove('lit'); fp.style.removeProperty('--pod-color'); }
-    var tp=$('epod'+to[m]); if(tp){ tp.classList.add('lit'); tp.style.setProperty('--pod-color','#e23b2e'); }
-  }
+  var i1=Math.floor(Math.random()*free.length);
+  var to1=free.splice(i1,1)[0];
+  var i2=Math.floor(Math.random()*free.length);
+  var to2=free.splice(i2,1)[0];
+  EN.to=[to1,to2]; EN.landed=[false,false]; EN.oldUp=[false,false];
+  var f1=$('epod'+EN.occ[0]); if(f1){ f1.classList.remove('lit'); f1.style.removeProperty('--pod-color'); }
+  var f2=$('epod'+EN.occ[1]); if(f2){ f2.classList.remove('lit'); f2.style.removeProperty('--pod-color'); }
+  var t1=$('epod'+to1); if(t1){ t1.classList.add('lit'); t1.style.setProperty('--pod-color','#e23b2e'); }
+  var t2=$('epod'+to2); if(t2){ t2.classList.add('lit'); t2.style.setProperty('--pod-color','#e23b2e'); }
   EN.tStart=performance.now(); S.roundStart=EN.tStart;
 }
 function extremoPointerUp(e){
@@ -873,11 +874,22 @@ function extremoPointerUp(e){
     for(var k in EN.placePid){
       if(EN.placePid[k]===pid){
         EN.placePid[k]=null;
-        var p=$('epod'+k); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); }
+        var p=$('epod'+k); if(p){ p.classList.remove('lit','pressed'); p.style.removeProperty('--pod-color'); }
       }
     }
+    return;
   }
-  /* sin dedo fijo: se pueden soltar los 3 a la vez, en cualquier orden. */
+  var podIdx=EN.ptrPod[pid];
+  if(podIdx!=null){ var pp=$('epod'+podIdx); if(pp) pp.classList.remove('pressed'); }
+  if(EN.phase==='live' && !EN.landed[0] && !EN.landed[1]){
+    if(podIdx===EN.occ[0]) EN.oldUp[0]=true;
+    else if(podIdx===EN.occ[1]) EN.oldUp[1]=true;
+    if(EN.oldUp[0] && EN.oldUp[1]){
+      EN.phase='done';
+      trialIndStop();
+      failRun('Has soltado los dos dedos a la vez. Uno debe quedarse puesto mientras mueves el otro.');
+    }
+  }
 }
 function extremoInit(){
   var a=$('extremoArena'); if(a) a.addEventListener('pointerdown', extremoPointerDown);
@@ -886,15 +898,12 @@ function extremoInit(){
 }
 
 /* ---------- Modo Limite: mismos 9 pods fijos, pero con 3 dedos ---------- */
-/* Home = fila de abajo (6,7,8). Cada ronda se elige al azar cual de los 3
-   dedos se queda fijo (marcado) y los otros 2 se mueven a la vez (a 2 de los
-   6 libres), con la misma regla de Extremo (uno debe quedarse puesto mientras
-   se mueve el otro). Ademas, si se levanta el dedo fijo en cualquier momento
-   (durante la ronda o en la pausa entre rondas), es fallo inmediato. */
-var LM={ phase:'idle', occ:[6,7,8], placePid:{'6':null,'7':null,'8':null}, ptrPod:{}, pinned:-1, movers:[], to:[], landed:[false,false], oldUp:[false,false], tStart:0 };
+/* Prueba: los 3 estimulos cambian a la vez y no hay ningun dedo fijo -> se
+   levantan y "saltan" los 3 a las 3 marcas nuevas, en cualquier orden, sin
+   restriccion de soltar antes o despues. */
+var LM={ phase:'idle', occ:[6,7,8], placePid:{'6':null,'7':null,'8':null}, ptrPod:{}, to:[], landed:[false,false,false], tStart:0 };
 function limiteGameReset(){
-  LM.phase='placing'; LM.occ=[6,7,8]; LM.placePid={'6':null,'7':null,'8':null}; LM.ptrPod={};
-  LM.pinned=-1; LM.movers=[]; LM.to=[]; LM.landed=[false,false]; LM.oldUp=[false,false]; LM.tStart=0;
+  LM.phase='placing'; LM.occ=[6,7,8]; LM.placePid={'6':null,'7':null,'8':null}; LM.ptrPod={}; LM.to=[]; LM.landed=[false,false,false]; LM.tStart=0;
   S.total=parseInt(S.s2,10)||15; S.times=[]; S.activeAccum=0; S.roundStart=null;
   TOUCHES={};
   trialIndStop();
@@ -925,11 +934,12 @@ function limitePointerDown(e){
     S.times.push(Math.round(rt));
     LM.ptrPod[e.pointerId]=Number(i);
     pod.style.setProperty('--pod-color','#8a8a8a');
-    if(LM.landed[0] && LM.landed[1]) bankActiveTime();
+    var allDone=LM.landed[0] && LM.landed[1] && LM.landed[2];
+    if(allDone) bankActiveTime();
     updateNormalCount(); trialIndUpdate();
     if(S.times.length>=S.total){ LM.phase='done'; bankActiveTime(); trialIndStop(); finish(); return; }
-    if(LM.landed[0] && LM.landed[1]){
-      LM.occ=[LM.pinned, LM.to[0], LM.to[1]];
+    if(allDone){
+      LM.occ=LM.to.slice();
       if(S.s3==='pausa'){
         LM.phase='pause';
         var w=500+Math.random()*1500;
@@ -960,20 +970,17 @@ function limiteStartCountdown(){
 }
 function limiteNextTrial(){
   LM.phase='live';
-  var pinIdx=Math.floor(Math.random()*LM.occ.length);
-  var pinned=LM.occ[pinIdx];
-  var movers=LM.occ.filter(function(x){ return x!==pinned; });
-  LM.pinned=pinned; LM.movers=movers;
   var free=[]; for(var i=0;i<9;i++){ if(LM.occ.indexOf(i)<0) free.push(i); }
-  var i1=Math.floor(Math.random()*free.length);
-  var to1=free.splice(i1,1)[0];
-  var i2=Math.floor(Math.random()*free.length);
-  var to2=free.splice(i2,1)[0];
-  LM.to=[to1,to2]; LM.landed=[false,false]; LM.oldUp=[false,false];
-  var f1=$('epod'+movers[0]); if(f1){ f1.classList.remove('lit'); f1.style.removeProperty('--pod-color'); }
-  var f2=$('epod'+movers[1]); if(f2){ f2.classList.remove('lit'); f2.style.removeProperty('--pod-color'); }
-  var t1=$('epod'+to1); if(t1){ t1.classList.add('lit'); t1.style.setProperty('--pod-color','#e23b2e'); }
-  var t2=$('epod'+to2); if(t2){ t2.classList.add('lit'); t2.style.setProperty('--pod-color','#e23b2e'); }
+  var to=[];
+  for(var k=0;k<3;k++){
+    var j=Math.floor(Math.random()*free.length);
+    to.push(free.splice(j,1)[0]);
+  }
+  LM.to=to; LM.landed=[false,false,false];
+  for(var m=0;m<3;m++){
+    var fp=$('epod'+LM.occ[m]); if(fp){ fp.classList.remove('lit'); fp.style.removeProperty('--pod-color'); }
+    var tp=$('epod'+to[m]); if(tp){ tp.classList.add('lit'); tp.style.setProperty('--pod-color','#e23b2e'); }
+  }
   LM.tStart=performance.now(); S.roundStart=LM.tStart;
 }
 function limitePointerUp(e){
@@ -985,24 +992,8 @@ function limitePointerUp(e){
         var p=$('epod'+k); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); }
       }
     }
-    return;
   }
-  if(LM.phase==='countdown'){ limiteGameReset(); return; }
-  if(LM.phase!=='live' && LM.phase!=='pause') return;
-  var podIdx=LM.ptrPod[pid];
-  if(LM.phase==='pause'){
-    if(LM.occ.indexOf(podIdx)>=0){
-      LM.phase='done'; trialIndStop();
-      failRun('Has levantado un dedo antes de tiempo. Los 3 deben quedarse puestos entre marca y marca.');
-    }
-    return;
-  }
-  if(podIdx===LM.pinned){
-    LM.phase='done'; trialIndStop();
-    failRun('Has levantado el dedo fijo. Debe quedarse puesto todo el rato.');
-  }
-  /* los 2 dedos que se mueven si pueden soltarse a la vez: solo importa
-     donde aterrizan, igual que en el resto de la app. */
+  /* sin dedo fijo: se pueden soltar los 3 a la vez, en cualquier orden. */
 }
 function limiteInit(){
   var a=$('extremoArena'); if(a) a.addEventListener('pointerdown', limitePointerDown);
