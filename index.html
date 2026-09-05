@@ -369,7 +369,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v6</div>
+    <div class="app-ver">v7</div>
     </div>
 
   </main>
@@ -781,32 +781,31 @@ function normalInit(){
   document.addEventListener('pointercancel', normalPointerUp);
 }
 
-/* ---------- Modo Extremo: 9 pods fijos (3x3), los 2 estimulos se marcan a la vez ---------- */
-/* Se marcan los 2 objetivos a la vez, pero se resuelven de uno en uno: hay que
-   mantener uno de los 2 dedos antiguos puesto mientras se mueve el otro. Si
-   los 2 dedos antiguos se levantan sin que ninguno haya aterrizado todavia en
-   su nueva marca, es fallo (como soltar el dedo fijo en Normal). */
-var EN={ phase:'idle', occ:[6,8], placePid:{'6':null,'8':null}, ptrPod:{}, to:[], landed:[false,false], oldUp:[false,false], tStart:0 };
+/* ---------- Modo Extremo: 9 pods fijos (3x3), 3 dedos, los 3 saltan a la vez ---------- */
+/* Prueba: los 3 estimulos cambian a la vez y no hay ningun dedo fijo -> se
+   levantan y "saltan" los 3 a las 3 marcas nuevas, en cualquier orden, sin
+   restriccion de soltar antes o despues. */
+var EN={ phase:'idle', occ:[6,7,8], placePid:{'6':null,'7':null,'8':null}, ptrPod:{}, to:[], landed:[false,false,false], tStart:0 };
 function extremoGameReset(){
-  EN.phase='placing'; EN.occ=[6,8]; EN.placePid={'6':null,'8':null}; EN.ptrPod={}; EN.to=[]; EN.landed=[false,false]; EN.oldUp=[false,false]; EN.tStart=0;
+  EN.phase='placing'; EN.occ=[6,7,8]; EN.placePid={'6':null,'7':null,'8':null}; EN.ptrPod={}; EN.to=[]; EN.landed=[false,false,false]; EN.tStart=0;
   S.total=parseInt(S.s2,10)||15; S.times=[]; S.activeAccum=0; S.roundStart=null;
   TOUCHES={};
   trialIndStop();
   $('indAvg').textContent='—'; $('indLast').textContent='—'; $('indTotal').textContent='0:00.0';
   for(var i=0;i<9;i++){ var p=$('epod'+i); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); } }
-  setNormalMsg('Coloca 2 dedos en los cuadrados de abajo');
+  setNormalMsg('Coloca 3 dedos en los cuadrados de abajo');
 }
 function extremoPointerDown(e){
   var pod=e.target.closest('.pod'); if(!pod) return;
   var i=pod.getAttribute('data-i');
   if(EN.phase==='placing'){
-    if(i!=='6' && i!=='8') return;
+    if(i!=='6' && i!=='7' && i!=='8') return;
     if(EN.placePid[i]!==null) return;
     e.preventDefault();
     EN.placePid[i]=e.pointerId;
     pod.classList.add('lit'); pod.style.setProperty('--pod-color','#8a8a8a');
-    if(EN.placePid['6']!==null && EN.placePid['8']!==null){
-      EN.ptrPod[EN.placePid['6']]=6; EN.ptrPod[EN.placePid['8']]=8;
+    if(EN.placePid['6']!==null && EN.placePid['7']!==null && EN.placePid['8']!==null){
+      EN.ptrPod[EN.placePid['6']]=6; EN.ptrPod[EN.placePid['7']]=7; EN.ptrPod[EN.placePid['8']]=8;
       extremoStartCountdown();
     }
     return;
@@ -819,10 +818,11 @@ function extremoPointerDown(e){
     S.times.push(Math.round(rt));
     EN.ptrPod[e.pointerId]=Number(i);
     pod.style.setProperty('--pod-color','#8a8a8a');
-    if(EN.landed[0] && EN.landed[1]) bankActiveTime();
+    var allDone=EN.landed[0] && EN.landed[1] && EN.landed[2];
+    if(allDone) bankActiveTime();
     updateNormalCount(); trialIndUpdate();
     if(S.times.length>=S.total){ EN.phase='done'; bankActiveTime(); trialIndStop(); finish(); return; }
-    if(EN.landed[0] && EN.landed[1]){
+    if(allDone){
       EN.occ=EN.to.slice();
       if(S.s3==='pausa'){
         EN.phase='pause';
@@ -855,15 +855,16 @@ function extremoStartCountdown(){
 function extremoNextTrial(){
   EN.phase='live';
   var free=[]; for(var i=0;i<9;i++){ if(EN.occ.indexOf(i)<0) free.push(i); }
-  var i1=Math.floor(Math.random()*free.length);
-  var to1=free.splice(i1,1)[0];
-  var i2=Math.floor(Math.random()*free.length);
-  var to2=free.splice(i2,1)[0];
-  EN.to=[to1,to2]; EN.landed=[false,false]; EN.oldUp=[false,false];
-  var f1=$('epod'+EN.occ[0]); if(f1){ f1.classList.remove('lit'); f1.style.removeProperty('--pod-color'); }
-  var f2=$('epod'+EN.occ[1]); if(f2){ f2.classList.remove('lit'); f2.style.removeProperty('--pod-color'); }
-  var t1=$('epod'+to1); if(t1){ t1.classList.add('lit'); t1.style.setProperty('--pod-color','#e23b2e'); }
-  var t2=$('epod'+to2); if(t2){ t2.classList.add('lit'); t2.style.setProperty('--pod-color','#e23b2e'); }
+  var to=[];
+  for(var k=0;k<3;k++){
+    var j=Math.floor(Math.random()*free.length);
+    to.push(free.splice(j,1)[0]);
+  }
+  EN.to=to; EN.landed=[false,false,false];
+  for(var m=0;m<3;m++){
+    var fp=$('epod'+EN.occ[m]); if(fp){ fp.classList.remove('lit'); fp.style.removeProperty('--pod-color'); }
+    var tp=$('epod'+to[m]); if(tp){ tp.classList.add('lit'); tp.style.setProperty('--pod-color','#e23b2e'); }
+  }
   EN.tStart=performance.now(); S.roundStart=EN.tStart;
 }
 function extremoPointerUp(e){
@@ -875,18 +876,8 @@ function extremoPointerUp(e){
         var p=$('epod'+k); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); }
       }
     }
-    return;
   }
-  if(EN.phase==='live' && !EN.landed[0] && !EN.landed[1]){
-    var podIdx=EN.ptrPod[pid];
-    if(podIdx===EN.occ[0]) EN.oldUp[0]=true;
-    else if(podIdx===EN.occ[1]) EN.oldUp[1]=true;
-    if(EN.oldUp[0] && EN.oldUp[1]){
-      EN.phase='done';
-      trialIndStop();
-      failRun('Has soltado los dos dedos a la vez. Uno debe quedarse puesto mientras mueves el otro.');
-    }
-  }
+  /* sin dedo fijo: se pueden soltar los 3 a la vez, en cualquier orden. */
 }
 function extremoInit(){
   var a=$('extremoArena'); if(a) a.addEventListener('pointerdown', extremoPointerDown);
