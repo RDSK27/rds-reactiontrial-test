@@ -369,7 +369,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v4</div>
+    <div class="app-ver">v5</div>
     </div>
 
   </main>
@@ -701,7 +701,7 @@ function normalStartCountdown(){
       return;
     }
     setNormalMsg('');
-    var hold=800+Math.random()*1700;
+    var hold=(S.s3==='nonstop')?0:(800+Math.random()*1700);
     setTimeout(function(){
       if(N.phase!=='countdown') return;
       S.t0=performance.now();
@@ -830,7 +830,7 @@ function extremoStartCountdown(){
     if(EN.phase!=='countdown') return;
     if(n>0){ setNormalMsg(String(n)); sndTick(); n--; setTimeout(tick,700); return; }
     setNormalMsg('');
-    var hold=800+Math.random()*1700;
+    var hold=(S.s3==='nonstop')?0:(800+Math.random()*1700);
     setTimeout(function(){
       if(EN.phase!=='countdown') return;
       S.t0=performance.now();
@@ -944,7 +944,7 @@ function limiteStartCountdown(){
     if(LM.phase!=='countdown') return;
     if(n>0){ setNormalMsg(String(n)); sndTick(); n--; setTimeout(tick,700); return; }
     setNormalMsg('');
-    var hold=800+Math.random()*1700;
+    var hold=(S.s3==='nonstop')?0:(800+Math.random()*1700);
     setTimeout(function(){
       if(LM.phase!=='countdown') return;
       S.t0=performance.now();
