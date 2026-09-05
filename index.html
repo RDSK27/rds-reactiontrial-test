@@ -370,7 +370,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v1</div>
+    <div class="app-ver">v2</div>
     </div>
 
   </main>
@@ -634,7 +634,7 @@ function runGame(){
    ptrPod: que pointerId esta sobre que pod, SOLO para poder detectar si se
    levanta el dedo del pod gris equivocado (el que debe quedarse quieto).
    placePid: version de ptrPod usada solo durante la colocacion inicial. */
-var N={ phase:'idle', occ:[4,5], placePid:{'4':null,'5':null}, ptrPod:{}, from:-1, to:-1, tStart:0 };
+var N={ phase:'idle', occ:[4,5], placePid:{'4':null,'5':null}, ptrPod:{}, from:-1, to:-1, tStart:0, complexCount:0 };
 /* El mismo cuadro de arriba hace de mensaje (colocacion/preparado) y luego
    de contador de ensayos, para que al retirarse el mensaje no cambie nada
    de tamano: es la misma caja de altura fija, solo cambia el texto. */
@@ -649,7 +649,7 @@ function trialIndUpdate(){
 }
 function trialIndStop(){ if(S.tickTimer){ clearInterval(S.tickTimer); S.tickTimer=null; } }
 function normalReset(){
-  N.phase='placing'; N.occ=[4,5]; N.placePid={'4':null,'5':null}; N.ptrPod={}; N.from=-1; N.to=-1; N.tStart=0;
+  N.phase='placing'; N.occ=[4,5]; N.placePid={'4':null,'5':null}; N.ptrPod={}; N.from=-1; N.to=-1; N.tStart=0; N.complexCount=0;
   S.total=parseInt(S.s2,10)||15; S.times=[];
   trialIndStop();
   $('indAvg').textContent='—'; $('indLast').textContent='—'; $('indTotal').textContent='0:00.0';
@@ -719,9 +719,20 @@ function failRun(msg){
 }
 function normalNextTrial(){
   N.phase='live';
+  if(S.times.length%5===0) N.complexCount=0;
   var from=N.occ[Math.floor(Math.random()*N.occ.length)];
+  /* columna = paridad del indice del pod (0,2,4 izquierda; 1,3,5 derecha).
+     "complejo" = el objetivo cae en la columna del dedo que se queda fijo
+     (cruce por delante del otro dedo); se limita a 2 de cada 5 movimientos. */
+  var pinned=(N.occ[0]===from)?N.occ[1]:N.occ[0];
+  var pinnedCol=pinned%2;
   var free=[]; for(var i=0;i<6;i++){ if(N.occ.indexOf(i)<0) free.push(i); }
-  var to=free[Math.floor(Math.random()*free.length)];
+  var simple=[], complex=[];
+  for(var j=0;j<free.length;j++){ (free[j]%2===pinnedCol?complex:simple).push(free[j]); }
+  var useComplex = complex.length>0 && N.complexCount<2 && Math.random()<0.4;
+  var pool = useComplex ? complex : (simple.length ? simple : complex);
+  var to = pool[Math.floor(Math.random()*pool.length)];
+  if(complex.indexOf(to)>=0) N.complexCount++;
   N.from=from; N.to=to;
   var fp=$('npod'+from); if(fp){ fp.classList.remove('lit'); fp.style.removeProperty('--pod-color'); }
   var tp=$('npod'+to); if(tp){ tp.classList.add('lit'); tp.style.setProperty('--pod-color','#e23b2e'); }
