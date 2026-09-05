@@ -370,7 +370,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v12</div>
+    <div class="app-ver">v13</div>
     </div>
 
   </main>
@@ -615,18 +615,14 @@ function runGame(){
   if(S.s1==='extremo'){
     if(na) na.style.display='none';
     if(ea) ea.style.display='';
-    LM.phase='idle';
+    N.phase='idle'; LM.phase='idle';
     extremoGameReset();
-  } else if(S.s1==='limite'){
-    if(na) na.style.display='none';
-    if(ea) ea.style.display='';
-    EN.phase='idle';
-    limiteGameReset();
   } else {
-    EN.phase='idle'; LM.phase='idle';
     if(ea) ea.style.display='none';
     if(na) na.style.display='';
-    if(S.s1==='normal'){ normalReset(); }
+    EN.phase='idle';
+    if(S.s1==='limite'){ N.phase='idle'; limiteGameReset(); }
+    else if(S.s1==='normal'){ LM.phase='idle'; normalReset(); }
   }
 }
 
@@ -635,7 +631,7 @@ function runGame(){
    ptrPod: que pointerId esta sobre que pod, SOLO para poder detectar si se
    levanta el dedo del pod gris equivocado (el que debe quedarse quieto).
    placePid: version de ptrPod usada solo durante la colocacion inicial. */
-var N={ phase:'idle', occ:[4,5], placePid:{'4':null,'5':null}, ptrPod:{}, from:-1, to:-1, tStart:0, complexCount:0 };
+var N={ phase:'idle', occ:[4,5], placePid:{'4':null,'5':null}, ptrPod:{}, to:[], landed:[false,false], tStart:0 };
 /* El mismo cuadro de arriba hace de mensaje (colocacion/preparado) y luego
    de contador de ensayos, para que al retirarse el mensaje no cambie nada
    de tamano: es la misma caja de altura fija, solo cambia el texto. */
@@ -657,8 +653,14 @@ function trialIndStop(){ if(S.tickTimer){ clearInterval(S.tickTimer); S.tickTime
 function bankActiveTime(){
   if(S.roundStart!=null){ S.activeAccum += performance.now()-S.roundStart; S.roundStart=null; }
 }
+function failRun(msg){
+  var fm=$('failMsg'); if(fm) fm.textContent=msg||'Se ha soltado un dedo antes de tiempo.';
+  show('fail');
+}
+/* Normal: 6 cuadrados fijos, 2 dedos, los 2 cambian a la vez (sin ninguno
+   fijo) -> se sueltan y se tocan los 2 nuevos, en cualquier orden. */
 function normalReset(){
-  N.phase='placing'; N.occ=[4,5]; N.placePid={'4':null,'5':null}; N.ptrPod={}; N.from=-1; N.to=-1; N.tStart=0; N.complexCount=0;
+  N.phase='placing'; N.occ=[4,5]; N.placePid={'4':null,'5':null}; N.ptrPod={}; N.to=[]; N.landed=[false,false]; N.tStart=0;
   S.total=parseInt(S.s2,10)||15; S.times=[]; S.activeAccum=0; S.roundStart=null;
   TOUCHES={};
   trialIndStop();
@@ -681,21 +683,27 @@ function normalPointerDown(e){
     }
     return;
   }
-  if(N.phase==='live' && i===String(N.to)){
+  if(N.phase==='live'){
+    var idx=N.to.indexOf(Number(i));
+    if(idx<0 || N.landed[idx]) return;
+    N.landed[idx]=true;
     var rt=performance.now()-N.tStart;
     S.times.push(Math.round(rt));
-    var idx=N.occ.indexOf(Number(N.from)); if(idx>=0) N.occ.splice(idx,1,Number(N.to));
-    N.ptrPod[e.pointerId]=Number(N.to);
+    N.ptrPod[e.pointerId]=Number(i);
     pod.style.setProperty('--pod-color','#8a8a8a');
-    bankActiveTime();
+    var allDone=N.landed[0] && N.landed[1];
+    if(allDone) bankActiveTime();
     updateNormalCount(); trialIndUpdate();
-    if(S.times.length>=S.total){ N.phase='done'; trialIndStop(); finish(); return; }
-    if(S.s3==='pausa'){
-      N.phase='pause';
-      var w=500+Math.random()*1500;
-      setTimeout(function(){ if(N.phase==='pause') normalNextTrial(); }, w);
-    } else {
-      normalNextTrial();
+    if(S.times.length>=S.total){ N.phase='done'; bankActiveTime(); trialIndStop(); finish(); return; }
+    if(allDone){
+      N.occ=N.to.slice();
+      if(S.s3==='pausa'){
+        N.phase='pause';
+        var w=500+Math.random()*1500;
+        setTimeout(function(){ if(N.phase==='pause') normalNextTrial(); }, w);
+      } else {
+        normalNextTrial();
+      }
     }
   }
 }
@@ -724,29 +732,18 @@ function normalStartCountdown(){
   }
   tick();
 }
-function failRun(msg){
-  var fm=$('failMsg'); if(fm) fm.textContent=msg||'Se ha soltado un dedo antes de tiempo.';
-  show('fail');
-}
 function normalNextTrial(){
   N.phase='live';
-  if(S.times.length%5===0) N.complexCount=0;
-  var from=N.occ[Math.floor(Math.random()*N.occ.length)];
-  /* columna = paridad del indice del pod (0,2,4 izquierda; 1,3,5 derecha).
-     "complejo" = el objetivo cae en la columna del dedo que se queda fijo
-     (cruce por delante del otro dedo); se limita a 2 de cada 5 movimientos. */
-  var pinned=(N.occ[0]===from)?N.occ[1]:N.occ[0];
-  var pinnedCol=pinned%2;
   var free=[]; for(var i=0;i<6;i++){ if(N.occ.indexOf(i)<0) free.push(i); }
-  var simple=[], complex=[];
-  for(var j=0;j<free.length;j++){ (free[j]%2===pinnedCol?complex:simple).push(free[j]); }
-  var useComplex = complex.length>0 && N.complexCount<2 && Math.random()<0.4;
-  var pool = useComplex ? complex : (simple.length ? simple : complex);
-  var to = pool[Math.floor(Math.random()*pool.length)];
-  if(complex.indexOf(to)>=0) N.complexCount++;
-  N.from=from; N.to=to;
-  var fp=$('npod'+from); if(fp){ fp.classList.remove('lit'); fp.style.removeProperty('--pod-color'); }
-  var tp=$('npod'+to); if(tp){ tp.classList.add('lit'); tp.style.setProperty('--pod-color','#e23b2e'); }
+  var i1=Math.floor(Math.random()*free.length);
+  var to1=free.splice(i1,1)[0];
+  var i2=Math.floor(Math.random()*free.length);
+  var to2=free.splice(i2,1)[0];
+  N.to=[to1,to2]; N.landed=[false,false];
+  var f1=$('npod'+N.occ[0]); if(f1){ f1.classList.remove('lit'); f1.style.removeProperty('--pod-color'); }
+  var f2=$('npod'+N.occ[1]); if(f2){ f2.classList.remove('lit'); f2.style.removeProperty('--pod-color'); }
+  var t1=$('npod'+to1); if(t1){ t1.classList.add('lit'); t1.style.setProperty('--pod-color','#e23b2e'); }
+  var t2=$('npod'+to2); if(t2){ t2.classList.add('lit'); t2.style.setProperty('--pod-color','#e23b2e'); }
   N.tStart=performance.now(); S.roundStart=N.tStart;
 }
 function normalPointerUp(e){
@@ -758,23 +755,8 @@ function normalPointerUp(e){
         var p=$('npod'+k); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); }
       }
     }
-    return;
   }
-  if(N.phase==='countdown'){
-    /* solto un dedo antes de que empezara de verdad: a colocarse de nuevo */
-    normalReset();
-    return;
-  }
-  if(N.phase==='live' || N.phase==='pause'){
-    var pinned = (N.occ[0]===N.from) ? N.occ[1] : N.occ[0];
-    if(N.ptrPod[pid]===pinned){
-      /* se levanto el dedo del pod gris (el que debia quedarse quieto):
-         el ejercicio no ha terminado, es un fallo -> sin resultados */
-      N.phase='done';
-      trialIndStop();
-      failRun('Has levantado el dedo antes de tiempo. Vuelve a intentarlo.');
-    }
-  }
+  /* sin dedo fijo: se pueden soltar los 2 a la vez, en cualquier orden. */
 }
 function normalInit(){
   var a=$('normalArena'); if(a) a.addEventListener('pointerdown', normalPointerDown);
@@ -897,74 +879,50 @@ function extremoInit(){
   document.addEventListener('pointercancel', extremoPointerUp);
 }
 
-/* ---------- Modo Limite: mismos 9 pods fijos, pero con 3 dedos ---------- */
-/* Prueba: los 3 estimulos cambian a la vez y no hay ningun dedo fijo -> se
-   levantan y "saltan" los 3 a las 3 marcas nuevas, en cualquier orden, sin
-   restriccion de soltar antes o despues. */
-var LM={ phase:'idle', occ:[6,7,8], placePid:{'6':null,'7':null,'8':null}, ptrPod:{}, to:[], landed:[false,false,false], held:[false,false,false], tStart:0, prevPattern:{row:false,col:false} };
-/* Los 3 objetivos pueden coincidir en una misma fila o columna, pero no dos
-   rondas seguidas: si la ronda anterior fue "misma fila", esta no puede
-   volver a serlo (aunque sea otra fila); igual para columna. */
-function limiteRowColPattern(arr){
-  var rows=arr.map(function(x){ return Math.floor(x/3); });
-  var cols=arr.map(function(x){ return x%3; });
-  return {
-    row: rows[0]===rows[1] && rows[1]===rows[2],
-    col: cols[0]===cols[1] && cols[1]===cols[2]
-  };
-}
+/* ---------- Modo Limite: 6 cuadrados fijos (los mismos de Normal), 2 dedos ---------- */
+/* Era la mecanica antigua de Normal: cambia UN objetivo cada vez (alternando
+   entre los 2 dedos), con el limite de cruces "complejos" y el fallo por
+   soltar el dedo fijo. Se traslada aqui por ser mas dificil. */
+var LM={ phase:'idle', occ:[4,5], placePid:{'4':null,'5':null}, ptrPod:{}, from:-1, to:-1, tStart:0, complexCount:0 };
 function limiteGameReset(){
-  LM.phase='placing'; LM.occ=[6,7,8]; LM.placePid={'6':null,'7':null,'8':null}; LM.ptrPod={}; LM.to=[]; LM.landed=[false,false,false]; LM.held=[false,false,false]; LM.tStart=0;
-  LM.prevPattern={row:false,col:false};
+  LM.phase='placing'; LM.occ=[4,5]; LM.placePid={'4':null,'5':null}; LM.ptrPod={}; LM.from=-1; LM.to=-1; LM.tStart=0; LM.complexCount=0;
   S.total=parseInt(S.s2,10)||15; S.times=[]; S.activeAccum=0; S.roundStart=null;
   TOUCHES={};
   trialIndStop();
   $('indAvg').textContent='—'; $('indLast').textContent='—'; $('indTotal').textContent='0:00.0';
-  for(var i=0;i<9;i++){ var p=$('epod'+i); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); } }
-  setNormalMsg('Coloca 3 dedos en los cuadrados de abajo');
+  for(var i=0;i<6;i++){ var p=$('npod'+i); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); } }
+  setNormalMsg('Coloca 2 dedos en los cuadrados de abajo');
 }
 function limitePointerDown(e){
   var pod=e.target.closest('.pod'); if(!pod) return;
   var i=pod.getAttribute('data-i');
   if(LM.phase==='placing'){
-    if(i!=='6' && i!=='7' && i!=='8') return;
+    if(i!=='4' && i!=='5') return;
     if(LM.placePid[i]!==null) return;
     e.preventDefault();
     LM.placePid[i]=e.pointerId;
     pod.classList.add('lit'); pod.style.setProperty('--pod-color','#8a8a8a');
-    if(LM.placePid['6']!==null && LM.placePid['7']!==null && LM.placePid['8']!==null){
-      LM.ptrPod[LM.placePid['6']]=6; LM.ptrPod[LM.placePid['7']]=7; LM.ptrPod[LM.placePid['8']]=8;
+    if(LM.placePid['4']!==null && LM.placePid['5']!==null){
+      LM.ptrPod[LM.placePid['4']]=4; LM.ptrPod[LM.placePid['5']]=5;
       limiteStartCountdown();
     }
     return;
   }
-  if(LM.phase==='live'){
-    var idx=LM.to.indexOf(Number(i));
-    if(idx<0) return;
-    if(!LM.landed[idx]){
-      LM.landed[idx]=true;
-      var rt=performance.now()-LM.tStart;
-      S.times.push(Math.round(rt));
-      updateNormalCount(); trialIndUpdate();
-    }
-    LM.held[idx]=true;
-    LM.ptrPod[e.pointerId]=Number(i);
+  if(LM.phase==='live' && i===String(LM.to)){
+    var rt=performance.now()-LM.tStart;
+    S.times.push(Math.round(rt));
+    var idx=LM.occ.indexOf(Number(LM.from)); if(idx>=0) LM.occ.splice(idx,1,Number(LM.to));
+    LM.ptrPod[e.pointerId]=Number(LM.to);
     pod.style.setProperty('--pod-color','#8a8a8a');
-    /* la ronda solo avanza cuando los 3 rojos estan pulsados A LA VEZ, no
-       solo tocados alguno tras otro (si sueltas uno antes de completar los
-       3, hay que volver a pulsarlo). */
-    var allHeld=LM.held[0] && LM.held[1] && LM.held[2];
-    if(allHeld){
-      bankActiveTime();
-      if(S.times.length>=S.total){ LM.phase='done'; trialIndStop(); finish(); return; }
-      LM.occ=LM.to.slice();
-      if(S.s3==='pausa'){
-        LM.phase='pause';
-        var w=500+Math.random()*1500;
-        setTimeout(function(){ if(LM.phase==='pause') limiteNextTrial(); }, w);
-      } else {
-        limiteNextTrial();
-      }
+    bankActiveTime();
+    updateNormalCount(); trialIndUpdate();
+    if(S.times.length>=S.total){ LM.phase='done'; trialIndStop(); finish(); return; }
+    if(S.s3==='pausa'){
+      LM.phase='pause';
+      var w=500+Math.random()*1500;
+      setTimeout(function(){ if(LM.phase==='pause') limiteNextTrial(); }, w);
+    } else {
+      limiteNextTrial();
     }
   }
 }
@@ -973,13 +931,20 @@ function limiteStartCountdown(){
   var n=3;
   function tick(){
     if(LM.phase!=='countdown') return;
-    if(n>0){ setNormalMsg(String(n)); sndTick(); n--; setTimeout(tick,700); return; }
+    if(n>0){
+      setNormalMsg(String(n));
+      sndTick();
+      n--;
+      setTimeout(tick,700);
+      return;
+    }
     setNormalMsg('');
     var hold=(S.s3==='nonstop')?0:(800+Math.random()*1700);
     setTimeout(function(){
       if(LM.phase!=='countdown') return;
       S.t0=performance.now();
-      updateNormalCount(); trialIndUpdate();
+      updateNormalCount();
+      trialIndUpdate();
       S.tickTimer=setInterval(trialIndUpdate,100);
       limiteNextTrial();
     }, hold);
@@ -988,23 +953,23 @@ function limiteStartCountdown(){
 }
 function limiteNextTrial(){
   LM.phase='live';
-  var to, pattern, attempts=0;
-  do{
-    var free=[]; for(var i=0;i<9;i++){ if(LM.occ.indexOf(i)<0) free.push(i); }
-    to=[];
-    for(var k=0;k<3;k++){
-      var j=Math.floor(Math.random()*free.length);
-      to.push(free.splice(j,1)[0]);
-    }
-    pattern=limiteRowColPattern(to);
-    attempts++;
-  } while(attempts<30 && ((LM.prevPattern.row && pattern.row) || (LM.prevPattern.col && pattern.col)));
-  LM.prevPattern=pattern;
-  LM.to=to; LM.landed=[false,false,false]; LM.held=[false,false,false];
-  for(var m=0;m<3;m++){
-    var fp=$('epod'+LM.occ[m]); if(fp){ fp.classList.remove('lit'); fp.style.removeProperty('--pod-color'); }
-    var tp=$('epod'+to[m]); if(tp){ tp.classList.add('lit'); tp.style.setProperty('--pod-color','#e23b2e'); }
-  }
+  if(S.times.length%5===0) LM.complexCount=0;
+  var from=LM.occ[Math.floor(Math.random()*LM.occ.length)];
+  /* columna = paridad del indice del pod (0,2,4 izquierda; 1,3,5 derecha).
+     "complejo" = el objetivo cae en la columna del dedo que se queda fijo
+     (cruce por delante del otro dedo); se limita a 2 de cada 5 movimientos. */
+  var pinned=(LM.occ[0]===from)?LM.occ[1]:LM.occ[0];
+  var pinnedCol=pinned%2;
+  var free=[]; for(var i=0;i<6;i++){ if(LM.occ.indexOf(i)<0) free.push(i); }
+  var simple=[], complex=[];
+  for(var j=0;j<free.length;j++){ (free[j]%2===pinnedCol?complex:simple).push(free[j]); }
+  var useComplex = complex.length>0 && LM.complexCount<2 && Math.random()<0.4;
+  var pool = useComplex ? complex : (simple.length ? simple : complex);
+  var to = pool[Math.floor(Math.random()*pool.length)];
+  if(complex.indexOf(to)>=0) LM.complexCount++;
+  LM.from=from; LM.to=to;
+  var fp=$('npod'+from); if(fp){ fp.classList.remove('lit'); fp.style.removeProperty('--pod-color'); }
+  var tp=$('npod'+to); if(tp){ tp.classList.add('lit'); tp.style.setProperty('--pod-color','#e23b2e'); }
   LM.tStart=performance.now(); S.roundStart=LM.tStart;
 }
 function limitePointerUp(e){
@@ -1013,22 +978,29 @@ function limitePointerUp(e){
     for(var k in LM.placePid){
       if(LM.placePid[k]===pid){
         LM.placePid[k]=null;
-        var p=$('epod'+k); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); }
+        var p=$('npod'+k); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); }
       }
     }
     return;
   }
-  /* sin dedo fijo: se pueden soltar los 3 en cualquier orden, pero si se
-     suelta uno antes de completar los 3 a la vez, hay que volver a pulsarlo:
-     marcarlo como no sujeto ahora mismo. */
-  if(LM.phase==='live'){
-    var podIdx=LM.ptrPod[pid];
-    var idx=LM.to.indexOf(podIdx);
-    if(idx>=0) LM.held[idx]=false;
+  if(LM.phase==='countdown'){
+    /* solto un dedo antes de que empezara de verdad: a colocarse de nuevo */
+    limiteGameReset();
+    return;
+  }
+  if(LM.phase==='live' || LM.phase==='pause'){
+    var pinned = (LM.occ[0]===LM.from) ? LM.occ[1] : LM.occ[0];
+    if(LM.ptrPod[pid]===pinned){
+      /* se levanto el dedo del pod gris (el que debia quedarse quieto):
+         el ejercicio no ha terminado, es un fallo -> sin resultados */
+      LM.phase='done';
+      trialIndStop();
+      failRun('Has levantado el dedo antes de tiempo. Vuelve a intentarlo.');
+    }
   }
 }
 function limiteInit(){
-  var a=$('extremoArena'); if(a) a.addEventListener('pointerdown', limitePointerDown);
+  var a=$('normalArena'); if(a) a.addEventListener('pointerdown', limitePointerDown);
   document.addEventListener('pointerup', limitePointerUp);
   document.addEventListener('pointercancel', limitePointerUp);
 }
