@@ -370,7 +370,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v11</div>
+    <div class="app-ver">v12</div>
     </div>
 
   </main>
@@ -901,7 +901,7 @@ function extremoInit(){
 /* Prueba: los 3 estimulos cambian a la vez y no hay ningun dedo fijo -> se
    levantan y "saltan" los 3 a las 3 marcas nuevas, en cualquier orden, sin
    restriccion de soltar antes o despues. */
-var LM={ phase:'idle', occ:[6,7,8], placePid:{'6':null,'7':null,'8':null}, ptrPod:{}, to:[], landed:[false,false,false], tStart:0, prevPattern:{row:false,col:false} };
+var LM={ phase:'idle', occ:[6,7,8], placePid:{'6':null,'7':null,'8':null}, ptrPod:{}, to:[], landed:[false,false,false], held:[false,false,false], tStart:0, prevPattern:{row:false,col:false} };
 /* Los 3 objetivos pueden coincidir en una misma fila o columna, pero no dos
    rondas seguidas: si la ronda anterior fue "misma fila", esta no puede
    volver a serlo (aunque sea otra fila); igual para columna. */
@@ -914,7 +914,7 @@ function limiteRowColPattern(arr){
   };
 }
 function limiteGameReset(){
-  LM.phase='placing'; LM.occ=[6,7,8]; LM.placePid={'6':null,'7':null,'8':null}; LM.ptrPod={}; LM.to=[]; LM.landed=[false,false,false]; LM.tStart=0;
+  LM.phase='placing'; LM.occ=[6,7,8]; LM.placePid={'6':null,'7':null,'8':null}; LM.ptrPod={}; LM.to=[]; LM.landed=[false,false,false]; LM.held=[false,false,false]; LM.tStart=0;
   LM.prevPattern={row:false,col:false};
   S.total=parseInt(S.s2,10)||15; S.times=[]; S.activeAccum=0; S.roundStart=null;
   TOUCHES={};
@@ -940,17 +940,23 @@ function limitePointerDown(e){
   }
   if(LM.phase==='live'){
     var idx=LM.to.indexOf(Number(i));
-    if(idx<0 || LM.landed[idx]) return;
-    LM.landed[idx]=true;
-    var rt=performance.now()-LM.tStart;
-    S.times.push(Math.round(rt));
+    if(idx<0) return;
+    if(!LM.landed[idx]){
+      LM.landed[idx]=true;
+      var rt=performance.now()-LM.tStart;
+      S.times.push(Math.round(rt));
+      updateNormalCount(); trialIndUpdate();
+    }
+    LM.held[idx]=true;
     LM.ptrPod[e.pointerId]=Number(i);
     pod.style.setProperty('--pod-color','#8a8a8a');
-    var allDone=LM.landed[0] && LM.landed[1] && LM.landed[2];
-    if(allDone) bankActiveTime();
-    updateNormalCount(); trialIndUpdate();
-    if(S.times.length>=S.total){ LM.phase='done'; bankActiveTime(); trialIndStop(); finish(); return; }
-    if(allDone){
+    /* la ronda solo avanza cuando los 3 rojos estan pulsados A LA VEZ, no
+       solo tocados alguno tras otro (si sueltas uno antes de completar los
+       3, hay que volver a pulsarlo). */
+    var allHeld=LM.held[0] && LM.held[1] && LM.held[2];
+    if(allHeld){
+      bankActiveTime();
+      if(S.times.length>=S.total){ LM.phase='done'; trialIndStop(); finish(); return; }
       LM.occ=LM.to.slice();
       if(S.s3==='pausa'){
         LM.phase='pause';
@@ -994,7 +1000,7 @@ function limiteNextTrial(){
     attempts++;
   } while(attempts<30 && ((LM.prevPattern.row && pattern.row) || (LM.prevPattern.col && pattern.col)));
   LM.prevPattern=pattern;
-  LM.to=to; LM.landed=[false,false,false];
+  LM.to=to; LM.landed=[false,false,false]; LM.held=[false,false,false];
   for(var m=0;m<3;m++){
     var fp=$('epod'+LM.occ[m]); if(fp){ fp.classList.remove('lit'); fp.style.removeProperty('--pod-color'); }
     var tp=$('epod'+to[m]); if(tp){ tp.classList.add('lit'); tp.style.setProperty('--pod-color','#e23b2e'); }
@@ -1010,8 +1016,16 @@ function limitePointerUp(e){
         var p=$('epod'+k); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); }
       }
     }
+    return;
   }
-  /* sin dedo fijo: se pueden soltar los 3 a la vez, en cualquier orden. */
+  /* sin dedo fijo: se pueden soltar los 3 en cualquier orden, pero si se
+     suelta uno antes de completar los 3 a la vez, hay que volver a pulsarlo:
+     marcarlo como no sujeto ahora mismo. */
+  if(LM.phase==='live'){
+    var podIdx=LM.ptrPod[pid];
+    var idx=LM.to.indexOf(podIdx);
+    if(idx>=0) LM.held[idx]=false;
+  }
 }
 function limiteInit(){
   var a=$('extremoArena'); if(a) a.addEventListener('pointerdown', limitePointerDown);
