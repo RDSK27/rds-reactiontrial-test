@@ -369,7 +369,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v5</div>
+    <div class="app-ver">v6</div>
     </div>
 
   </main>
@@ -590,6 +590,7 @@ function setSeg(id,val){
 
 /* ---------- Estado ---------- */
 var S={ s1:'a', s2:'a', s3:'a', name:'RDS', sport:'', t0:0, times:[],
+        activeAccum:0, roundStart:null,
         resAvg:NaN, resTotal:0, resEnsayos:0, saved:null,
         lastRec:null, lastRecKey:null, rankKey:null };
 
@@ -644,12 +645,20 @@ function trialIndUpdate(){
   for(i=0;i<n;i++) sum+=S.times[i];
   $('indAvg').textContent = n ? (Math.round(sum/n)+' ms') : '—';
   $('indLast').textContent = n ? (S.times[n-1]+' ms') : '—';
-  $('indTotal').textContent = fmtTime(performance.now()-S.t0);
+  var activeNow=S.activeAccum+(S.roundStart!=null?(performance.now()-S.roundStart):0);
+  $('indTotal').textContent = fmtTime(activeNow);
 }
 function trialIndStop(){ if(S.tickTimer){ clearInterval(S.tickTimer); S.tickTimer=null; } }
+/* Cronometro de "tiempo activo": solo cuenta desde que se marca un estimulo
+   hasta que se resuelve del todo (los 2 en Extremo/Limite); en modo Pausa,
+   el hueco de espera entre movimientos queda fuera. En Non-stop coincide
+   con el tiempo total real, porque no hay huecos. */
+function bankActiveTime(){
+  if(S.roundStart!=null){ S.activeAccum += performance.now()-S.roundStart; S.roundStart=null; }
+}
 function normalReset(){
   N.phase='placing'; N.occ=[4,5]; N.placePid={'4':null,'5':null}; N.ptrPod={}; N.from=-1; N.to=-1; N.tStart=0; N.complexCount=0;
-  S.total=parseInt(S.s2,10)||15; S.times=[];
+  S.total=parseInt(S.s2,10)||15; S.times=[]; S.activeAccum=0; S.roundStart=null;
   TOUCHES={};
   trialIndStop();
   $('indAvg').textContent='—'; $('indLast').textContent='—'; $('indTotal').textContent='0:00.0';
@@ -677,6 +686,7 @@ function normalPointerDown(e){
     var idx=N.occ.indexOf(Number(N.from)); if(idx>=0) N.occ.splice(idx,1,Number(N.to));
     N.ptrPod[e.pointerId]=Number(N.to);
     pod.style.setProperty('--pod-color','#8a8a8a');
+    bankActiveTime();
     updateNormalCount(); trialIndUpdate();
     if(S.times.length>=S.total){ N.phase='done'; trialIndStop(); finish(); return; }
     if(S.s3==='pausa'){
@@ -736,7 +746,7 @@ function normalNextTrial(){
   N.from=from; N.to=to;
   var fp=$('npod'+from); if(fp){ fp.classList.remove('lit'); fp.style.removeProperty('--pod-color'); }
   var tp=$('npod'+to); if(tp){ tp.classList.add('lit'); tp.style.setProperty('--pod-color','#e23b2e'); }
-  N.tStart=performance.now();
+  N.tStart=performance.now(); S.roundStart=N.tStart;
 }
 function normalPointerUp(e){
   var pid=e.pointerId;
@@ -779,7 +789,7 @@ function normalInit(){
 var EN={ phase:'idle', occ:[6,8], placePid:{'6':null,'8':null}, ptrPod:{}, to:[], landed:[false,false], oldUp:[false,false], tStart:0 };
 function extremoGameReset(){
   EN.phase='placing'; EN.occ=[6,8]; EN.placePid={'6':null,'8':null}; EN.ptrPod={}; EN.to=[]; EN.landed=[false,false]; EN.oldUp=[false,false]; EN.tStart=0;
-  S.total=parseInt(S.s2,10)||15; S.times=[];
+  S.total=parseInt(S.s2,10)||15; S.times=[]; S.activeAccum=0; S.roundStart=null;
   TOUCHES={};
   trialIndStop();
   $('indAvg').textContent='—'; $('indLast').textContent='—'; $('indTotal').textContent='0:00.0';
@@ -809,8 +819,9 @@ function extremoPointerDown(e){
     S.times.push(Math.round(rt));
     EN.ptrPod[e.pointerId]=Number(i);
     pod.style.setProperty('--pod-color','#8a8a8a');
+    if(EN.landed[0] && EN.landed[1]) bankActiveTime();
     updateNormalCount(); trialIndUpdate();
-    if(S.times.length>=S.total){ EN.phase='done'; trialIndStop(); finish(); return; }
+    if(S.times.length>=S.total){ EN.phase='done'; bankActiveTime(); trialIndStop(); finish(); return; }
     if(EN.landed[0] && EN.landed[1]){
       EN.occ=EN.to.slice();
       if(S.s3==='pausa'){
@@ -853,7 +864,7 @@ function extremoNextTrial(){
   var f2=$('epod'+EN.occ[1]); if(f2){ f2.classList.remove('lit'); f2.style.removeProperty('--pod-color'); }
   var t1=$('epod'+to1); if(t1){ t1.classList.add('lit'); t1.style.setProperty('--pod-color','#e23b2e'); }
   var t2=$('epod'+to2); if(t2){ t2.classList.add('lit'); t2.style.setProperty('--pod-color','#e23b2e'); }
-  EN.tStart=performance.now();
+  EN.tStart=performance.now(); S.roundStart=EN.tStart;
 }
 function extremoPointerUp(e){
   var pid=e.pointerId;
@@ -893,7 +904,7 @@ var LM={ phase:'idle', occ:[6,7,8], placePid:{'6':null,'7':null,'8':null}, ptrPo
 function limiteGameReset(){
   LM.phase='placing'; LM.occ=[6,7,8]; LM.placePid={'6':null,'7':null,'8':null}; LM.ptrPod={};
   LM.pinned=-1; LM.movers=[]; LM.to=[]; LM.landed=[false,false]; LM.oldUp=[false,false]; LM.tStart=0;
-  S.total=parseInt(S.s2,10)||15; S.times=[];
+  S.total=parseInt(S.s2,10)||15; S.times=[]; S.activeAccum=0; S.roundStart=null;
   TOUCHES={};
   trialIndStop();
   $('indAvg').textContent='—'; $('indLast').textContent='—'; $('indTotal').textContent='0:00.0';
@@ -923,8 +934,9 @@ function limitePointerDown(e){
     S.times.push(Math.round(rt));
     LM.ptrPod[e.pointerId]=Number(i);
     pod.style.setProperty('--pod-color','#8a8a8a');
+    if(LM.landed[0] && LM.landed[1]) bankActiveTime();
     updateNormalCount(); trialIndUpdate();
-    if(S.times.length>=S.total){ LM.phase='done'; trialIndStop(); finish(); return; }
+    if(S.times.length>=S.total){ LM.phase='done'; bankActiveTime(); trialIndStop(); finish(); return; }
     if(LM.landed[0] && LM.landed[1]){
       LM.occ=[LM.pinned, LM.to[0], LM.to[1]];
       if(S.s3==='pausa'){
@@ -971,7 +983,7 @@ function limiteNextTrial(){
   var f2=$('epod'+movers[1]); if(f2){ f2.classList.remove('lit'); f2.style.removeProperty('--pod-color'); }
   var t1=$('epod'+to1); if(t1){ t1.classList.add('lit'); t1.style.setProperty('--pod-color','#e23b2e'); }
   var t2=$('epod'+to2); if(t2){ t2.classList.add('lit'); t2.style.setProperty('--pod-color','#e23b2e'); }
-  LM.tStart=performance.now();
+  LM.tStart=performance.now(); S.roundStart=LM.tStart;
 }
 function limitePointerUp(e){
   var pid=e.pointerId;
@@ -1012,7 +1024,7 @@ function generarStub(){
   var n=8, i;
   S.times=[];
   for(i=0;i<n;i++){ S.times.push(Math.round(180+Math.random()*320)); }
-  S.t0=performance.now()-(2000+Math.random()*4000);
+  S.roundStart=null; S.activeAccum=2000+Math.random()*4000;
   finish();
 }
 
@@ -1059,7 +1071,8 @@ function showSaveScreen(){
 }
 
 function finish(){
-  var total=performance.now()-S.t0, c=calc();
+  bankActiveTime();
+  var total=S.activeAccum, c=calc();
   $('resMsg').style.display='none'; $('resEns').style.display='none';
   /* Mapea aqui las 4 metricas del quad a las de tu app */
   $('rV1').textContent=Math.round(c.avg)+' '+UNIDAD;
