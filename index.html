@@ -370,7 +370,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v10</div>
+    <div class="app-ver">v11</div>
     </div>
 
   </main>
@@ -901,9 +901,21 @@ function extremoInit(){
 /* Prueba: los 3 estimulos cambian a la vez y no hay ningun dedo fijo -> se
    levantan y "saltan" los 3 a las 3 marcas nuevas, en cualquier orden, sin
    restriccion de soltar antes o despues. */
-var LM={ phase:'idle', occ:[6,7,8], placePid:{'6':null,'7':null,'8':null}, ptrPod:{}, to:[], landed:[false,false,false], tStart:0 };
+var LM={ phase:'idle', occ:[6,7,8], placePid:{'6':null,'7':null,'8':null}, ptrPod:{}, to:[], landed:[false,false,false], tStart:0, prevPattern:{row:false,col:false} };
+/* Los 3 objetivos pueden coincidir en una misma fila o columna, pero no dos
+   rondas seguidas: si la ronda anterior fue "misma fila", esta no puede
+   volver a serlo (aunque sea otra fila); igual para columna. */
+function limiteRowColPattern(arr){
+  var rows=arr.map(function(x){ return Math.floor(x/3); });
+  var cols=arr.map(function(x){ return x%3; });
+  return {
+    row: rows[0]===rows[1] && rows[1]===rows[2],
+    col: cols[0]===cols[1] && cols[1]===cols[2]
+  };
+}
 function limiteGameReset(){
   LM.phase='placing'; LM.occ=[6,7,8]; LM.placePid={'6':null,'7':null,'8':null}; LM.ptrPod={}; LM.to=[]; LM.landed=[false,false,false]; LM.tStart=0;
+  LM.prevPattern={row:false,col:false};
   S.total=parseInt(S.s2,10)||15; S.times=[]; S.activeAccum=0; S.roundStart=null;
   TOUCHES={};
   trialIndStop();
@@ -970,12 +982,18 @@ function limiteStartCountdown(){
 }
 function limiteNextTrial(){
   LM.phase='live';
-  var free=[]; for(var i=0;i<9;i++){ if(LM.occ.indexOf(i)<0) free.push(i); }
-  var to=[];
-  for(var k=0;k<3;k++){
-    var j=Math.floor(Math.random()*free.length);
-    to.push(free.splice(j,1)[0]);
-  }
+  var to, pattern, attempts=0;
+  do{
+    var free=[]; for(var i=0;i<9;i++){ if(LM.occ.indexOf(i)<0) free.push(i); }
+    to=[];
+    for(var k=0;k<3;k++){
+      var j=Math.floor(Math.random()*free.length);
+      to.push(free.splice(j,1)[0]);
+    }
+    pattern=limiteRowColPattern(to);
+    attempts++;
+  } while(attempts<30 && ((LM.prevPattern.row && pattern.row) || (LM.prevPattern.col && pattern.col)));
+  LM.prevPattern=pattern;
   LM.to=to; LM.landed=[false,false,false];
   for(var m=0;m<3;m++){
     var fp=$('epod'+LM.occ[m]); if(fp){ fp.classList.remove('lit'); fp.style.removeProperty('--pod-color'); }
