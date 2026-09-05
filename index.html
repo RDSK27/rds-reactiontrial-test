@@ -370,7 +370,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v14</div>
+    <div class="app-ver">v15</div>
     </div>
 
   </main>
@@ -669,9 +669,10 @@ function normalReset(){
   setNormalMsg('Coloca 2 dedos en los cuadrados de abajo');
 }
 function normalPointerDown(e){
-  var pod=e.target.closest('.pod'); if(!pod) return;
-  var i=pod.getAttribute('data-i');
+  var pod=e.target.closest('.pod');
   if(N.phase==='placing'){
+    if(!pod) return;
+    var i=pod.getAttribute('data-i');
     if(i!=='4' && i!=='5') return;
     if(N.placePid[i]!==null) return;
     e.preventDefault();
@@ -684,8 +685,17 @@ function normalPointerDown(e){
     return;
   }
   if(N.phase==='live'){
-    var idx=N.to.indexOf(Number(i));
-    if(idx<0 || N.landed[idx]) return;
+    var i=pod?pod.getAttribute('data-i'):null;
+    var idx=(i!=null)?N.to.indexOf(Number(i)):-1;
+    if(idx<0){
+      /* toque fuera de los 2 cuadrados marcados: en Normal cuenta al toque,
+         no vale acertar tarde -> se anula el ejercicio, sin resultados */
+      N.phase='done';
+      trialIndStop();
+      failRun('Has pulsado fuera de los cuadrados marcados. Vuelve a intentarlo.');
+      return;
+    }
+    if(N.landed[idx]) return;
     N.landed[idx]=true;
     var rt=performance.now()-N.tStart;
     S.times.push(Math.round(rt));
