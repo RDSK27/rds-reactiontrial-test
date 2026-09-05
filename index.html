@@ -369,7 +369,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v3</div>
+    <div class="app-ver">v4</div>
     </div>
 
   </main>
@@ -650,6 +650,7 @@ function trialIndStop(){ if(S.tickTimer){ clearInterval(S.tickTimer); S.tickTime
 function normalReset(){
   N.phase='placing'; N.occ=[4,5]; N.placePid={'4':null,'5':null}; N.ptrPod={}; N.from=-1; N.to=-1; N.tStart=0; N.complexCount=0;
   S.total=parseInt(S.s2,10)||15; S.times=[];
+  TOUCHES={};
   trialIndStop();
   $('indAvg').textContent='—'; $('indLast').textContent='—'; $('indTotal').textContent='0:00.0';
   for(var i=0;i<6;i++){ var p=$('npod'+i); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); } }
@@ -779,6 +780,7 @@ var EN={ phase:'idle', occ:[6,8], placePid:{'6':null,'8':null}, ptrPod:{}, to:[]
 function extremoGameReset(){
   EN.phase='placing'; EN.occ=[6,8]; EN.placePid={'6':null,'8':null}; EN.ptrPod={}; EN.to=[]; EN.landed=[false,false]; EN.oldUp=[false,false]; EN.tStart=0;
   S.total=parseInt(S.s2,10)||15; S.times=[];
+  TOUCHES={};
   trialIndStop();
   $('indAvg').textContent='—'; $('indLast').textContent='—'; $('indTotal').textContent='0:00.0';
   for(var i=0;i<9;i++){ var p=$('epod'+i); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); } }
@@ -892,6 +894,7 @@ function limiteGameReset(){
   LM.phase='placing'; LM.occ=[6,7,8]; LM.placePid={'6':null,'7':null,'8':null}; LM.ptrPod={};
   LM.pinned=-1; LM.movers=[]; LM.to=[]; LM.landed=[false,false]; LM.oldUp=[false,false]; LM.tStart=0;
   S.total=parseInt(S.s2,10)||15; S.times=[];
+  TOUCHES={};
   trialIndStop();
   $('indAvg').textContent='—'; $('indLast').textContent='—'; $('indTotal').textContent='0:00.0';
   for(var i=0;i<9;i++){ var p=$('epod'+i); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); } }
@@ -1262,7 +1265,39 @@ function trialInit(){
 }
 function openTrialSetup(){ trialRender(); show('trial'); }
 
-seg('seg1'); seg('seg2'); seg('seg3'); trialInit(); normalInit(); extremoInit(); limiteInit();
+/* ---------- Guardian anti-trampa: cuenta dedos reales en pantalla ---------- */
+/* No evita usar 2 manos o dedos distintos a indice/anular (eso no se puede
+   detectar), pero si evita anadir un dedo de mas para hacer trampa: Normal
+   permite 1 o 2 a la vez (3 = fin del ejercicio); Extremo y Limite permiten
+   hasta 3 (4 = fin del ejercicio). */
+var TOUCHES={};
+function touchCount(){ return Object.keys(TOUCHES).length; }
+function touchGuardDown(e){
+  if(e.pointerType!=='touch') return;
+  TOUCHES[e.pointerId]=true;
+  var n=touchCount();
+  if(N.phase!=='idle' && N.phase!=='done' && n>2){
+    N.phase='done'; trialIndStop();
+    failRun('Se han detectado más de 2 dedos en pantalla.');
+  } else if(EN.phase!=='idle' && EN.phase!=='done' && n>3){
+    EN.phase='done'; trialIndStop();
+    failRun('Se han detectado más de 3 dedos en pantalla.');
+  } else if(LM.phase!=='idle' && LM.phase!=='done' && n>3){
+    LM.phase='done'; trialIndStop();
+    failRun('Se han detectado más de 3 dedos en pantalla.');
+  }
+}
+function touchGuardUp(e){
+  if(e.pointerType!=='touch') return;
+  delete TOUCHES[e.pointerId];
+}
+function touchGuardInit(){
+  document.addEventListener('pointerdown', touchGuardDown, true);
+  document.addEventListener('pointerup', touchGuardUp, true);
+  document.addEventListener('pointercancel', touchGuardUp, true);
+}
+
+seg('seg1'); seg('seg2'); seg('seg3'); trialInit(); normalInit(); extremoInit(); limiteInit(); touchGuardInit();
 segRank('seg1R'); segRank('seg2R'); segRank('seg3R');
 $('btnRank2').addEventListener('click', showRanking);
 $('btnGuardar').addEventListener('click', function(){
