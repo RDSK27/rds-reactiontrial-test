@@ -151,21 +151,20 @@ if('serviceWorker' in navigator){
   .trial-start:active{ transform:translateY(1px); }
 
   /* ===== Arena modo Normal: 6 pods (4 objetivo arriba + 2 "casa" abajo) ===== */
-  .trial-game-panel{ width:fit-content; max-width:94%; margin:10px auto 0; padding:18px 18px 22px; box-sizing:border-box; border:3px solid #b03020; border-radius:14px; background:#151515; box-shadow:0 4px 12px rgba(0,0,0,.45); }
-  .trial-arena{ --pod-size:96px; --pod-gap:26px; display:grid; grid-template-columns:repeat(2,var(--pod-size)); grid-template-rows:repeat(3,var(--pod-size)); gap:var(--pod-gap); justify-content:center; align-content:center; touch-action:none; }
-  .trial-arena .pod{ position:relative; width:100%; aspect-ratio:1; border-radius:50%; box-sizing:border-box; padding:0; border:none; cursor:pointer; -webkit-tap-highlight-color:transparent; touch-action:none; background:conic-gradient(#ffffff,#9a9a9a,#e8e8e8,#5a5a5a,#ffffff,#8a8a8a,#dcdcdc,#666666,#ffffff); box-shadow:0 3px 7px rgba(0,0,0,.5); transition:box-shadow .06s ease, transform .06s ease; }
+  .trial-game-panel{ width:fit-content; max-width:94%; margin:10px auto 0; padding:26px 26px 30px; box-sizing:border-box; border:3px solid #b03020; border-radius:16px; background:#151515; box-shadow:0 4px 12px rgba(0,0,0,.45); }
+  .trial-arena{ --pod-size:130px; --pod-gap:28px; display:grid; grid-template-columns:repeat(2,var(--pod-size)); grid-template-rows:repeat(3,var(--pod-size)); gap:var(--pod-gap); justify-content:center; align-content:center; touch-action:none; }
+  .trial-arena .pod{ position:relative; width:100%; aspect-ratio:1; border-radius:20px; box-sizing:border-box; padding:0; border:none; cursor:pointer; -webkit-tap-highlight-color:transparent; touch-action:none; background:conic-gradient(#ffffff,#9a9a9a,#e8e8e8,#5a5a5a,#ffffff,#8a8a8a,#dcdcdc,#666666,#ffffff); box-shadow:0 3px 7px rgba(0,0,0,.5); transition:box-shadow .06s ease, transform .06s ease; }
+  .trial-arena .pod::before{ content:''; position:absolute; inset:4px; border-radius:14px; background:radial-gradient(circle at 35% 30%, #3a3a3a 0%, #1a1a1a 50%, #050505 100%); box-shadow:inset 0 2px 4px rgba(255,255,255,.22), inset 0 -3px 6px rgba(0,0,0,.6); }
+  .trial-arena .pod.lit::before{ background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.30) 0%, rgba(255,255,255,0) 46%), radial-gradient(circle at 50% 82%, rgba(0,0,0,.40) 0%, rgba(0,0,0,0) 58%), var(--pod-color,#e23b2e); box-shadow:inset 0 2px 4px rgba(255,255,255,.28), inset 0 -3px 6px rgba(0,0,0,.5); }
   .trial-ind{display:flex;background:#111;border-bottom:1px solid #333;flex-shrink:0;width:100%;}
   .trial-ind>div{flex:1;text-align:center;padding:6px 2px;border-right:1px solid #2b2b2b;}
   .trial-ind>div:last-child{border-right:0;}
   .trial-ind .k{font-size:0.5rem;letter-spacing:0.1em;text-transform:uppercase;color:#8b8b8b;}
   .trial-ind .v{font-size:0.98rem;font-weight:800;color:#fff;line-height:1.2;}
-  .trial-game-msg{ color:#cfcfcf; font-weight:700; letter-spacing:1px; text-transform:uppercase; font-size:11px; line-height:15px; text-align:center; height:30px; overflow:hidden; margin:0 auto 10px; width:260px; max-width:100%; box-sizing:border-box; display:flex; align-items:center; justify-content:center; }
+  .trial-game-msg{ color:#cfcfcf; font-weight:700; letter-spacing:1px; text-transform:uppercase; font-size:16px; line-height:20px; text-align:center; height:62px; overflow:hidden; margin:0 auto 10px; width:280px; max-width:100%; box-sizing:border-box; display:flex; align-items:center; justify-content:center; }
 
   /* ===== Arena modo Extremo: 9 pods (3x3), 2 dedos que cambian a la vez + deriva continua ===== */
   .trial-arena.ex9{ --pod-size:90px; --pod-gap:14px; grid-template-columns:repeat(3,var(--pod-size)); grid-template-rows:repeat(3,var(--pod-size)); }
-  .trial-arena.ex9 .pod{ will-change:transform; }
-  .trial-arena .pod::before{ content:''; position:absolute; inset:4px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #3a3a3a 0%, #1a1a1a 50%, #050505 100%); box-shadow:inset 0 2px 4px rgba(255,255,255,.22), inset 0 -3px 6px rgba(0,0,0,.6); }
-  .trial-arena .pod.lit::before{ background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.30) 0%, rgba(255,255,255,0) 46%), radial-gradient(circle at 50% 82%, rgba(0,0,0,.40) 0%, rgba(0,0,0,0) 58%), var(--pod-color,#e23b2e); box-shadow:inset 0 2px 4px rgba(255,255,255,.28), inset 0 -3px 6px rgba(0,0,0,.5); }
   .trial-arena .pod:active{ transform:translateY(1px); }
   .trial-arena .pod.home{ grid-row:3; }
 
@@ -370,7 +369,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v2</div>
+    <div class="app-ver">v3</div>
     </div>
 
   </main>
@@ -654,7 +653,7 @@ function normalReset(){
   trialIndStop();
   $('indAvg').textContent='—'; $('indLast').textContent='—'; $('indTotal').textContent='0:00.0';
   for(var i=0;i<6;i++){ var p=$('npod'+i); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); } }
-  setNormalMsg('Coloca 2 dedos en los círculos de abajo');
+  setNormalMsg('Coloca 2 dedos en los cuadrados de abajo');
 }
 function normalPointerDown(e){
   var pod=e.target.closest('.pod'); if(!pod) return;
@@ -783,7 +782,7 @@ function extremoGameReset(){
   trialIndStop();
   $('indAvg').textContent='—'; $('indLast').textContent='—'; $('indTotal').textContent='0:00.0';
   for(var i=0;i<9;i++){ var p=$('epod'+i); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); } }
-  setNormalMsg('Coloca 2 dedos en los círculos de abajo');
+  setNormalMsg('Coloca 2 dedos en los cuadrados de abajo');
 }
 function extremoPointerDown(e){
   var pod=e.target.closest('.pod'); if(!pod) return;
@@ -896,7 +895,7 @@ function limiteGameReset(){
   trialIndStop();
   $('indAvg').textContent='—'; $('indLast').textContent='—'; $('indTotal').textContent='0:00.0';
   for(var i=0;i<9;i++){ var p=$('epod'+i); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); } }
-  setNormalMsg('Coloca 3 dedos en los círculos de abajo');
+  setNormalMsg('Coloca 3 dedos en los cuadrados de abajo');
 }
 function limitePointerDown(e){
   var pod=e.target.closest('.pod'); if(!pod) return;
