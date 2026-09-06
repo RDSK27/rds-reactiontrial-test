@@ -362,7 +362,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v19</div>
+    <div class="app-ver">v20</div>
     </div>
 
   </main>
@@ -1365,7 +1365,7 @@ var TR={ active:false, lap:1, zoneIdx:0, zonesPerLap:6, diffs:[], mode:'normal',
          threshold:350, zoneFails:0, results:[[],[]], allTimes:[], missTimer:null };
 function trialModeFor(d){ return d<2?'normal':(d<4?'extremo':'limite'); }
 function trialRitmoFor(d){ return (d%2===0)?'nonstop':'pausa'; }
-function trialEnsayosFor(d){ return (d%2===0)?15:30; }
+function trialEnsayosFor(d){ return 15; }
 function trialThresholdFor(d){ return [600,650,800,850,900,950][d]; }
 function trialArmMissTimer(stillLive){
   trialClearMissTimer();
