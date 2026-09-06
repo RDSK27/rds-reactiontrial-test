@@ -363,7 +363,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v24</div>
+    <div class="app-ver">v25</div>
     </div>
 
   </main>
@@ -491,10 +491,8 @@ if('serviceWorker' in navigator){
     <div class="rank-body">
       <div class="rank-sub" id="tzrLabel" style="margin-top:4px;">VUELTA 1 &middot; ZONA 1 DE 6</div>
       <div class="cnum" id="tzrScore" style="text-align:center;">0</div>
-      <div class="fail-msg" style="font-size:14px;max-width:none;text-align:center;">Puntos de la zona</div>
       <div id="tzrTable" style="margin-top:16px;"></div>
-      <div class="fail-msg" style="font-size:14px;max-width:none;text-align:center;margin-top:16px;">Resultado general</div>
-      <div class="cnum" id="tzrTotal" style="text-align:center;">0</div>
+      <div class="cnum" id="tzrTotal" style="text-align:center;font-size:64px;margin-top:16px;">0</div>
     </div>
   <div class="results-actions">
     <button class="game-ctrl-btn" onclick="goHome()">&#8592; Inicio</button>
@@ -886,14 +884,16 @@ function extremoPointerDown(e){
       return;
     }
     if(EN.landed[idx]) return;
-    trialClearMissTimer();
     EN.landed[idx]=true;
     EN.ptrPod[e.pointerId]=Number(i);
     pod.classList.add('pressed'); pod.style.setProperty('--pod-color','#8a8a8a');
     var allDone=EN.landed[0] && EN.landed[1];
     if(allDone){
       /* el resultado es UNO por ronda: lo que se tarda en llegar con el
-         segundo dedo al segundo cuadrado, no un tiempo por cada uno. */
+         segundo dedo al segundo cuadrado, no un tiempo por cada uno. El
+         limite de tiempo (fallo por tardanza) tampoco se anula hasta que
+         llega este segundo dedo. */
+      trialClearMissTimer();
       S.times.push(Math.round(performance.now()-EN.tStart));
       bankActiveTime(); S.roundsDone++;
     }
