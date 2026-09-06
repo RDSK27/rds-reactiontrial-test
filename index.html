@@ -305,8 +305,13 @@ if('serviceWorker' in navigator){
 
     <div class="segment" id="seg1">
       <button class="sel" data-v="normal">Normal</button>
-      <button data-v="extremo">Extremo</button>
-      <button data-v="limite">Límite</button>
+      <!-- Intercambiados: "Extremo" ahora es la mecanica de 6 pods que
+           antes era "Limite" (data-v="limite"), y "Limite" ahora es la
+           de 9 pods que antes era "Extremo" (data-v="extremo"). El
+           nombre interno (limite/extremo, EN/LM, epod/npod) no cambia,
+           solo la etiqueta visible que el usuario elige. -->
+      <button data-v="limite">Extremo</button>
+      <button data-v="extremo">Límite</button>
     </div>
 
     <div class="segment" id="seg2">
@@ -371,7 +376,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v36</div>
+    <div class="app-ver">v37</div>
     </div>
 
   </main>
@@ -530,8 +535,8 @@ if('serviceWorker' in navigator){
       <div class="rank-screen-title">Ranking completo</div>
       <div class="rank-tabs" id="seg1R">
         <button class="rank-tab" data-v="normal">Normal</button>
-        <button class="rank-tab" data-v="extremo">Extremo</button>
-        <button class="rank-tab" data-v="limite">L&#237;mite</button>
+        <button class="rank-tab" data-v="limite">Extremo</button>
+        <button class="rank-tab" data-v="extremo">L&#237;mite</button>
         <button class="rank-tab" data-v="trial">Trial</button>
       </div>
       <div class="rank-tabs" id="seg2R">
@@ -1470,7 +1475,11 @@ function openTrialSetup(){ trialRender(); show('trial'); }
    dedos de nuevo. Al llegar a 4 salta a 5 y se acaba la zona. */
 var TR={ active:false, lap:1, zoneIdx:0, zonesPerLap:6, diffs:[], mode:'normal', ritmo:'nonstop',
          threshold:350, zoneFails:0, results:[[],[]], allTimes:[], missTimer:null };
-function trialModeFor(d){ return d<2?'normal':(d<4?'extremo':'limite'); }
+/* d=2,3 corren la mecanica de 6 pods (string interno 'limite', antes
+   etiquetada Limite, ahora visible como Extremo); d=4,5 la de 9 pods
+   (string interno 'extremo', antes Extremo, ahora visible como Limite).
+   Ver nota junto a #seg1 en el HTML. */
+function trialModeFor(d){ return d<2?'normal':(d<4?'limite':'extremo'); }
 function trialRitmoFor(d){ return (d%2===0)?'nonstop':'pausa'; }
 function trialEnsayosFor(d){ return 10; }
 function trialThresholdFor(d){ return [700,725,900,925,950,1000][d]; }
