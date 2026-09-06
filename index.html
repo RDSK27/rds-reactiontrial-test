@@ -363,7 +363,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v26</div>
+    <div class="app-ver">v27</div>
     </div>
 
   </main>
@@ -1408,7 +1408,7 @@ var TR={ active:false, lap:1, zoneIdx:0, zonesPerLap:6, diffs:[], mode:'normal',
 function trialModeFor(d){ return d<2?'normal':(d<4?'extremo':'limite'); }
 function trialRitmoFor(d){ return (d%2===0)?'nonstop':'pausa'; }
 function trialEnsayosFor(d){ return 15; }
-function trialThresholdFor(d){ return [700,725,750,800,925,975][d]; }
+function trialThresholdFor(d){ return [700,725,800,850,925,975][d]; }
 function trialArmMissTimer(stillLive){
   trialClearMissTimer();
   TR.missTimer=setTimeout(function(){
@@ -1496,16 +1496,17 @@ function trialEndZone(){
    cada zona (se va rellenando segun se juega, vacia = "—") y la final. */
 function trialBuildTableHTML(withSums){
   var n=TR.zonesPerLap, l1=TR.results[0]||[], l2=TR.results[1]||[], i;
-  var html='<table style="width:100%;border-collapse:collapse;font-size:0.8rem;">';
-  html+='<tr><th style="text-align:left;padding:6px;border-bottom:2px solid var(--rojo);">Zona</th><th style="padding:6px;border-bottom:2px solid var(--rojo);">Vuelta 1</th><th style="padding:6px;border-bottom:2px solid var(--rojo);">Vuelta 2</th></tr>';
+  var html='<table style="width:100%;table-layout:fixed;border-collapse:collapse;font-size:0.8rem;">';
+  html+='<colgroup><col style="width:22%"><col style="width:56%"><col style="width:22%"></colgroup>';
+  html+='<tr><th style="text-align:center;padding:6px;border-bottom:2px solid var(--rojo);">Zona</th><th style="padding:6px;border-bottom:2px solid var(--rojo);">Vuelta 1</th><th style="padding:6px;border-bottom:2px solid var(--rojo);">Vuelta 2</th></tr>';
   for(i=0;i<n;i++){
     var v1=(l1[i]!==undefined)?l1[i]:'—', v2=(l2[i]!==undefined)?l2[i]:'—';
-    html+='<tr><td style="padding:6px;border-bottom:1px solid var(--seg);">'+(i+1)+'</td><td style="text-align:center;padding:6px;border-bottom:1px solid var(--seg);font-weight:800;">'+v1+'</td><td style="text-align:center;padding:6px;border-bottom:1px solid var(--seg);font-weight:800;">'+v2+'</td></tr>';
+    html+='<tr><td style="text-align:center;padding:6px;border-bottom:1px solid var(--seg);">'+(i+1)+'</td><td style="text-align:center;padding:6px;border-bottom:1px solid var(--seg);font-weight:800;">'+v1+'</td><td style="text-align:center;padding:6px;border-bottom:1px solid var(--seg);font-weight:800;">'+v2+'</td></tr>';
   }
   if(withSums){
     var sum1=0, sum2=0;
     for(i=0;i<n;i++){ sum1+=l1[i]||0; sum2+=l2[i]||0; }
-    html+='<tr><td style="padding:6px;font-weight:800;">Suma</td><td style="text-align:center;padding:6px;font-weight:800;">'+sum1+'</td><td style="text-align:center;padding:6px;font-weight:800;">'+sum2+'</td></tr>';
+    html+='<tr><td style="text-align:center;padding:6px;font-weight:800;">Suma</td><td style="text-align:center;padding:6px;font-weight:800;">'+sum1+'</td><td style="text-align:center;padding:6px;font-weight:800;">'+sum2+'</td></tr>';
   }
   html+='</table>';
   return html;
