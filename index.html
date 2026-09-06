@@ -363,7 +363,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v28</div>
+    <div class="app-ver">v29</div>
     </div>
 
   </main>
@@ -506,6 +506,12 @@ if('serviceWorker' in navigator){
       <div class="rank-sub">Resultado final</div>
       <div id="trialFinalTable"></div>
     </div>
+  <div class="save-row">
+    <div class="save-row-inner">
+      <button class="btn-save" id="btnGuardarTrial">Guardar resultado</button>
+      <button class="btn-rank2" id="btnRank2Trial">Ranking</button>
+    </div>
+  </div>
   <div class="results-actions">
     <button class="game-ctrl-btn" style="border-right:none;" onclick="goHome()">&#8592; Inicio</button>
   </div>
@@ -629,12 +635,12 @@ function startGame(){
   S.sport=($('user-sport-select')&&$('user-sport-select').value)||'';
   runGame();
 }
-function repeatGame(){ runGame(); }
+function repeatGame(){ if(TR.active){ trialRunZone(); return; } runGame(); }
 function runGame(){
   show('game');
   var na=$('normalArena'), ea=$('extremoArena'), sb=$('stubBtn'), rb=$('btnRepetir'), zb=$('trialZoneBar');
   if(sb) sb.style.display=(S.s1==='normal' || S.s1==='extremo' || S.s1==='limite') ? 'none' : '';
-  if(rb) rb.style.display=TR.active?'none':'';
+  if(rb) rb.style.display='';
   if(zb) zb.style.display=TR.active?'':'none';
   if(S.s1==='extremo'){
     if(na) na.style.display='none';
@@ -1490,6 +1496,12 @@ function trialEndZone(){
   TR.allTimes=TR.allTimes.concat(S.times);
   trialClearMissTimer();
   trialIndStop();
+  if(TR.lap===2 && TR.zoneIdx===TR.zonesPerLap-1){
+    /* ultima zona: al resultado final directo, sin pantalla intermedia */
+    TR.active=false;
+    showTrialFinalResults();
+    return;
+  }
   showTrialZoneResult(score);
 }
 /* Tabla de 2 columnas (Vuelta 1 / Vuelta 2) compartida entre la pantalla de
@@ -1515,8 +1527,6 @@ function showTrialZoneResult(score){
   $('tzrLabel').textContent='VUELTA '+TR.lap+' · ZONA '+(TR.zoneIdx+1)+' DE '+TR.zonesPerLap;
   var el=$('tzrScore'); el.textContent=String(score);
   el.style.color = score>=5?'#b03020':(score>=3?'#b0790f':'#4E8B33');
-  var lastZone = (TR.lap===2 && TR.zoneIdx===TR.zonesPerLap-1);
-  $('tzrNextBtn').textContent = lastZone ? 'Ver resultados' : 'Siguiente zona';
   $('tzrTable').innerHTML=trialBuildTableHTML(false);
   var total=trialTotalPointsSoFar();
   var totalEl=$('tzrTotal');
@@ -1526,20 +1536,21 @@ function showTrialZoneResult(score){
 }
 function trialNextZone(){
   TR.zoneIdx++;
-  if(TR.zoneIdx>=TR.zonesPerLap){
-    TR.zoneIdx=0;
-    TR.lap++;
-    if(TR.lap>2){ TR.active=false; showTrialFinalResults(); return; }
-  }
+  if(TR.zoneIdx>=TR.zonesPerLap){ TR.zoneIdx=0; TR.lap++; }
   trialRunZone();
 }
+function saveTrialResult(totalPoints){
+  var avgRt = TR.allTimes.length ? Math.round(TR.allTimes.reduce(function(a,b){ return a+b; },0)/TR.allTimes.length) : 0;
+  S.s1='trial'; S.s2=String(T.zonas); S.s3=''; S.resEnsayos=T.zonas;
+  saveScore(totalPoints, avgRt);
+}
 function showTrialFinalResults(){
-  var n=TR.zonesPerLap, l1=TR.results[0], l2=TR.results[1], sum1=0, sum2=0, i;
-  for(i=0;i<n;i++){ sum1+=l1[i]||0; sum2+=l2[i]||0; }
+  var total=trialTotalPointsSoFar();
   var html=trialBuildTableHTML(true);
-  html+='<div style="text-align:center;margin-top:14px;font-weight:900;font-size:2rem;color:var(--rojo);">'+(sum1+sum2)+'</div>';
-  html+='<div style="text-align:center;font-weight:700;letter-spacing:1px;text-transform:uppercase;font-size:11px;color:#9A9A9A;">Resultado final</div>';
+  html+='<div class="cnum" style="text-align:center;font-size:64px;margin-top:16px;color:'+(total>=10?'#b03020':(total>=5?'#b0790f':'#4E8B33'))+';">'+total+'</div>';
   $('trialFinalTable').innerHTML=html;
+  S.saved=false;
+  var gbt=$('btnGuardarTrial'); if(gbt){ gbt.disabled=false; gbt.textContent='Guardar resultado'; }
   show('trialFinal');
 }
 
@@ -1584,6 +1595,12 @@ $('btnRank2').addEventListener('click', showRanking);
 $('btnGuardar').addEventListener('click', function(){
   if(S.saved) return;
   saveScore(S.resAvg, S.resTotal);
+  S.saved=true; this.disabled=true; this.textContent='Guardado';
+});
+$('btnRank2Trial').addEventListener('click', showRanking);
+$('btnGuardarTrial').addEventListener('click', function(){
+  if(S.saved) return;
+  saveTrialResult(trialTotalPointsSoFar());
   S.saved=true; this.disabled=true; this.textContent='Guardado';
 });
 $('btnGuardarRank').addEventListener('click', function(){

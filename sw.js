@@ -1,5 +1,5 @@
 /* RDS Reaction Trial - Service Worker */
-var CACHE = 'reactiontrial-v28';
+var CACHE = 'reactiontrial-v29';
 var ASSETS = [
   './',
   './index.html',
