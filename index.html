@@ -156,6 +156,12 @@ if('serviceWorker' in navigator){
   .trial-ind .v{font-size:0.98rem;font-weight:800;color:#fff;line-height:1.2;}
   .trial-ind .v-zonapts{background:var(--rojo);display:inline-block;min-width:1.6em;border-radius:4px;padding:1px 8px;}
   .trial-game-msg{ color:#cfcfcf; font-weight:700; letter-spacing:1px; text-transform:uppercase; font-size:16px; line-height:20px; text-align:center; height:62px; overflow:hidden; margin:0 auto 10px; width:280px; max-width:100%; box-sizing:border-box; display:flex; align-items:center; justify-content:center; }
+  /* Con la barra extra de zona/puntos, el modo Trial necesita recuperar
+     algo de alto para que Inicio/Repetir no queden mas abajo que en el
+     resto de pantallas: se recorta relleno, nunca el tamano de la cuadricula. */
+  #game.trial-mode .trial-game-panel{ margin-top:4px; padding:14px 20px 16px; }
+  #game.trial-mode .trial-game-msg{ margin-bottom:4px; }
+  #game.trial-mode .stub-body{ padding:12px; }
 
   /* ===== Arena modo Extremo: 9 pods (3x3), 2 dedos que cambian a la vez + deriva continua ===== */
   .trial-arena.ex9{ --pod-size:90px; --pod-gap:14px; grid-template-columns:repeat(3,var(--pod-size)); grid-template-rows:repeat(3,var(--pod-size)); }
@@ -363,7 +369,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v29</div>
+    <div class="app-ver">v30</div>
     </div>
 
   </main>
@@ -635,13 +641,14 @@ function startGame(){
   S.sport=($('user-sport-select')&&$('user-sport-select').value)||'';
   runGame();
 }
-function repeatGame(){ if(TR.active){ trialRunZone(); return; } runGame(); }
+function repeatGame(){ if(TR.active){ trialStart(); return; } runGame(); }
 function runGame(){
   show('game');
   var na=$('normalArena'), ea=$('extremoArena'), sb=$('stubBtn'), rb=$('btnRepetir'), zb=$('trialZoneBar');
   if(sb) sb.style.display=(S.s1==='normal' || S.s1==='extremo' || S.s1==='limite') ? 'none' : '';
   if(rb) rb.style.display='';
   if(zb) zb.style.display=TR.active?'':'none';
+  var gs=$('game'); if(gs) gs.classList.toggle('trial-mode', TR.active);
   if(S.s1==='extremo'){
     if(na) na.style.display='none';
     if(ea) ea.style.display='';
