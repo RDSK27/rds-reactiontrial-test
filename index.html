@@ -154,6 +154,7 @@ if('serviceWorker' in navigator){
   .trial-ind>div:last-child{border-right:0;}
   .trial-ind .k{font-size:0.5rem;letter-spacing:0.1em;text-transform:uppercase;color:#8b8b8b;}
   .trial-ind .v{font-size:0.98rem;font-weight:800;color:#fff;line-height:1.2;}
+  .trial-ind .v-zonapts{background:var(--rojo);display:inline-block;min-width:1.6em;border-radius:4px;padding:1px 8px;}
   .trial-game-msg{ color:#cfcfcf; font-weight:700; letter-spacing:1px; text-transform:uppercase; font-size:16px; line-height:20px; text-align:center; height:62px; overflow:hidden; margin:0 auto 10px; width:280px; max-width:100%; box-sizing:border-box; display:flex; align-items:center; justify-content:center; }
 
   /* ===== Arena modo Extremo: 9 pods (3x3), 2 dedos que cambian a la vez + deriva continua ===== */
@@ -362,7 +363,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v20</div>
+    <div class="app-ver">v21</div>
     </div>
 
   </main>
@@ -402,7 +403,7 @@ if('serviceWorker' in navigator){
     <div class="trial-ind" id="trialZoneBar" style="display:none;">
       <div><div class="k">Zona</div><div class="v" id="tzbZona">—</div></div>
       <div><div class="k">Puntos Trial</div><div class="v" id="tzbTrialPts">0</div></div>
-      <div><div class="k">Puntos zona</div><div class="v" id="tzbZonaPts">0</div></div>
+      <div><div class="k">Puntos zona</div><div class="v"><span class="v-zonapts" id="tzbZonaPts">0</span></div></div>
     </div>
     <div class="stub-body">
       <div class="trial-game-panel">
