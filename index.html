@@ -132,19 +132,11 @@ if('serviceWorker' in navigator){
   .trial-main{ flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; align-items:center; padding:10px 12px 16px; box-sizing:border-box; background-color:#c7cbcf; background-image:radial-gradient(70% 50% at 50% 30%,rgba(255,255,255,0.55) 0%,rgba(255,255,255,0) 60%),linear-gradient(180deg,#e4e7ea 0%,#c7cbcf 60%,#b0b4b8 100%); }
   .trial-title{ font-size:1.2rem; font-weight:900; letter-spacing:0.12em; text-transform:uppercase; color:#111; text-align:center; margin:6px 0 12px; }
   .trial-panel{ width:100%; max-width:360px; box-sizing:border-box; margin:0 auto; padding:14px 14px 16px; display:flex; flex-direction:column; gap:10px; border:3px solid #b03020; border-radius:14px; background:#0a0a0a; box-shadow:0 4px 12px rgba(0,0,0,.45); }
-  .trial-row{ display:flex; align-items:center; justify-content:space-between; width:100%; box-sizing:border-box; padding:11px 14px; border:2px solid var(--negro); background:var(--seg); color:var(--tx-seg); font-family:inherit; cursor:pointer; }
-  .trial-row .trial-k{ font-weight:700; letter-spacing:1.5px; text-transform:uppercase; font-size:14px; }
-  .trial-row .trial-v{ font-weight:800; font-size:16px; }
-  .trial-row.sel{ background:var(--rojo); color:#fff; border-color:var(--rojo); }
-  .trial-rocker{ display:flex; width:min(260px,86%); height:58px; margin:6px auto 2px; border-radius:14px; overflow:hidden; border:1px solid #3a3a3a; box-shadow:0 2px 6px rgba(0,0,0,.45); }
-  .trial-rocker button{ flex:1; border:0; cursor:pointer; font-family:inherit; font-size:30px; font-weight:700; line-height:1; color:#e6e6e6; background:#222222; transition:background .1s, color .1s; }
-  .trial-rocker button:first-child{ border-right:1px solid #3a3a3a; }
-  .trial-rocker button:active{ background:var(--rojo); color:#fff; }
   .trial-zones{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; padding:4px 2px 0; }
-  .tz-chip{ width:30px; height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:12px; color:#fff; }
-  .tz-chip.d1{ background:#4E8B33; }
-  .tz-chip.d2{ background:#b0790f; }
-  .tz-chip.d3{ background:#b03020; }
+  .tz-chip{ width:34px; height:34px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; color:#fff; }
+  .tz-chip.d0, .tz-chip.d1{ background:#4E8B33; }
+  .tz-chip.d2, .tz-chip.d3{ background:#b0790f; }
+  .tz-chip.d4, .tz-chip.d5{ background:#b03020; }
   .trial-lap-label{ color:#cfcfcf; font-weight:700; letter-spacing:1px; text-transform:uppercase; font-size:10px; text-align:center; margin-top:4px; min-height:12px; }
   .trial-hint{ color:#9a9a9a; font-size:10px; text-align:center; line-height:1.4; padding:2px 6px 0; }
   .trial-start{ width:80%; max-width:240px; margin:8px auto 0; padding:12px; border:none; border-radius:10px; cursor:pointer; background:radial-gradient(circle at 35% 30%, #e84030 0%, #b03020 45%, #7a1a10 100%); color:#fff; font-weight:900; letter-spacing:0.18em; text-transform:uppercase; font-size:0.95rem; box-shadow:0 4px 10px rgba(0,0,0,.5), inset 0 2px 4px rgba(255,255,255,.28), inset 0 -3px 6px rgba(0,0,0,.5); }
@@ -370,7 +362,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v15</div>
+    <div class="app-ver">v16</div>
     </div>
 
   </main>
@@ -381,17 +373,14 @@ if('serviceWorker' in navigator){
     <main class="trial-main">
       <h2 class="trial-title">Trial</h2>
       <div class="trial-panel">
-        <button type="button" class="trial-row sel" data-p="zonas"><span class="trial-k">Zonas</span><span class="trial-v" id="tvZonas">6</span></button>
-        <button type="button" class="trial-row" data-p="vueltas"><span class="trial-k">Vueltas</span><span class="trial-v" id="tvVueltas">1</span></button>
-        <button type="button" class="trial-row" data-p="ritmo"><span class="trial-k">Ritmo</span><span class="trial-v" id="tvRitmo">Pausa</span></button>
-        <div class="trial-rocker">
-          <button type="button" id="tbMinus">&#8722;</button>
-          <button type="button" id="tbPlus">+</button>
+        <div class="segment" id="segTrialZonas">
+          <button class="sel" data-v="6">6 zonas</button>
+          <button data-v="12">12 zonas</button>
         </div>
         <div class="trial-zones" id="trialZones"></div>
-        <div class="trial-lap-label" id="trialLapNote"></div>
-        <div class="trial-hint">Dificultad de cada zona: 1 = Normal, 2 = Extremo, 3 = L&#237;mite. El recorrido se repite igual en cada vuelta.</div>
-        <button type="button" class="trial-start" id="tbStart">Empezar</button>
+        <div class="trial-lap-label">2 vueltas, mismo recorrido en las dos</div>
+        <div class="trial-hint">Dificultad de cada zona: 0-1 Normal, 2-3 Extremo, 4-5 L&#237;mite (Non-stop/Pausa).</div>
+        <button type="button" class="trial-start" id="tbStart" onclick="trialStart()">Empezar</button>
       </div>
     </main>
   <div class="results-actions">
@@ -437,7 +426,10 @@ if('serviceWorker' in navigator){
     </div>
   <div class="results-actions">
     <button class="game-ctrl-btn" onclick="goHome()">&#8592; Inicio</button>
-    <button class="game-ctrl-btn" style="border-right:none;border-left:1px solid #333;" onclick="repeatGame()">&#8634; Repetir</button>
+    <button class="game-ctrl-btn" id="btnRepetir" style="border-right:none;border-left:1px solid #333;" onclick="repeatGame()">&#8634; Repetir</button>
+  </div>
+  <div id="trialMissFlash" style="display:none;position:fixed;inset:0;background:rgba(176,32,32,0.94);z-index:5000;align-items:center;justify-content:center;">
+    <div style="color:#fff;font-weight:900;font-size:2.2rem;text-transform:uppercase;letter-spacing:0.1em;">Fallo</div>
   </div>
   </section>
 
@@ -486,6 +478,30 @@ if('serviceWorker' in navigator){
   <div class="results-actions">
     <button class="game-ctrl-btn" onclick="goHome()">&#8592; Inicio</button>
     <button class="game-ctrl-btn" style="border-right:none;border-left:1px solid #333;" onclick="repeatGame()">&#8634; Repetir</button>
+  </div>
+  </section>
+
+  <section id="trialZoneResult" class="screen">
+    <div class="center-body">
+      <div class="rank-sub" id="tzrLabel">VUELTA 1 &middot; ZONA 1 DE 6</div>
+      <div class="cnum" id="tzrScore">0</div>
+      <div class="fail-msg" style="font-size:14px;max-width:none;">Puntos de la zona</div>
+      <div id="tzrTable" style="width:100%;max-width:320px;margin-top:14px;"></div>
+    </div>
+  <div class="results-actions">
+    <button class="game-ctrl-btn" onclick="goHome()">&#8592; Inicio</button>
+    <button class="game-ctrl-btn" style="border-right:none;border-left:1px solid #333;" id="tzrNextBtn" onclick="trialNextZone()">Siguiente zona</button>
+  </div>
+  </section>
+
+  <section id="trialFinal" class="screen">
+    <div class="rank-body">
+      <div class="rank-title">Trial</div>
+      <div class="rank-sub">Resultado final</div>
+      <div id="trialFinalTable"></div>
+    </div>
+  <div class="results-actions">
+    <button class="game-ctrl-btn" style="border-right:none;" onclick="goHome()">&#8592; Inicio</button>
   </div>
   </section>
 
@@ -610,8 +626,9 @@ function startGame(){
 function repeatGame(){ runGame(); }
 function runGame(){
   show('game');
-  var na=$('normalArena'), ea=$('extremoArena'), sb=$('stubBtn');
+  var na=$('normalArena'), ea=$('extremoArena'), sb=$('stubBtn'), rb=$('btnRepetir');
   if(sb) sb.style.display=(S.s1==='normal' || S.s1==='extremo' || S.s1==='limite') ? 'none' : '';
+  if(rb) rb.style.display=TR.active?'none':'';
   if(S.s1==='extremo'){
     if(na) na.style.display='none';
     if(ea) ea.style.display='';
@@ -666,7 +683,12 @@ function normalReset(){
   trialIndStop();
   $('indAvg').textContent='—'; $('indLast').textContent='—'; $('indTotal').textContent='0:00.0';
   for(var i=0;i<6;i++){ var p=$('npod'+i); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); } }
-  setNormalMsg('Coloca 2 dedos en los cuadrados de abajo');
+  setNormalMsg(TR.active?String(TR.diffs[TR.zoneIdx]):'Coloca 2 dedos en los cuadrados de abajo');
+}
+function normalReplace(){
+  N.phase='placing'; N.occ=[4,5]; N.placePid={'4':null,'5':null}; N.ptrPod={}; N.to=[]; N.landed=[false,false];
+  for(var i=0;i<6;i++){ var p=$('npod'+i); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); } }
+  setNormalMsg(TR.active?String(TR.diffs[TR.zoneIdx]):'Coloca 2 dedos en los cuadrados de abajo');
 }
 function normalPointerDown(e){
   var pod=e.target.closest('.pod');
@@ -688,14 +710,16 @@ function normalPointerDown(e){
     var i=pod?pod.getAttribute('data-i'):null;
     var idx=(i!=null)?N.to.indexOf(Number(i)):-1;
     if(idx<0){
-      /* toque fuera de los 2 cuadrados marcados: en Normal cuenta al toque,
-         no vale acertar tarde -> se anula el ejercicio, sin resultados */
+      /* toque fuera de los 2 cuadrados marcados */
+      if(TR.active){ trialClearMissTimer(); trialMiss(pod?2:1); return; }
+      /* fuera de Trial: no vale acertar tarde -> se anula el ejercicio */
       N.phase='done';
       trialIndStop();
       failRun('Has pulsado fuera de los cuadrados marcados. Vuelve a intentarlo.');
       return;
     }
     if(N.landed[idx]) return;
+    trialClearMissTimer();
     N.landed[idx]=true;
     var rt=performance.now()-N.tStart;
     S.times.push(Math.round(rt));
@@ -704,6 +728,7 @@ function normalPointerDown(e){
     var allDone=N.landed[0] && N.landed[1];
     if(allDone){ bankActiveTime(); S.roundsDone++; }
     updateNormalCount(); trialIndUpdate();
+    if(allDone && TR.active && S.roundsDone>=S.total){ N.phase='done'; trialIndStop(); trialEndZone(); return; }
     if(allDone && S.roundsDone>=S.total){ N.phase='done'; bankActiveTime(); trialIndStop(); finish(); return; }
     if(allDone){
       N.occ=N.to.slice();
@@ -755,6 +780,7 @@ function normalNextTrial(){
   var t1=$('npod'+to1); if(t1){ t1.classList.add('lit'); t1.style.setProperty('--pod-color','#e23b2e'); }
   var t2=$('npod'+to2); if(t2){ t2.classList.add('lit'); t2.style.setProperty('--pod-color','#e23b2e'); }
   N.tStart=performance.now(); S.roundStart=N.tStart;
+  trialArmMissTimer(function(){ return N.phase==='live'; });
 }
 function normalPointerUp(e){
   var pid=e.pointerId;
@@ -788,12 +814,18 @@ function extremoGameReset(){
   trialIndStop();
   $('indAvg').textContent='—'; $('indLast').textContent='—'; $('indTotal').textContent='0:00.0';
   for(var i=0;i<9;i++){ var p=$('epod'+i); if(p){ p.classList.remove('lit','pressed'); p.style.removeProperty('--pod-color'); } }
-  setNormalMsg('Coloca 2 dedos en los cuadrados de abajo');
+  setNormalMsg(TR.active?String(TR.diffs[TR.zoneIdx]):'Coloca 2 dedos en los cuadrados de abajo');
+}
+function extremoReplace(){
+  EN.phase='placing'; EN.occ=[6,8]; EN.placePid={'6':null,'8':null}; EN.ptrPod={}; EN.to=[]; EN.landed=[false,false]; EN.oldUp=[false,false];
+  for(var i=0;i<9;i++){ var p=$('epod'+i); if(p){ p.classList.remove('lit','pressed'); p.style.removeProperty('--pod-color'); } }
+  setNormalMsg(TR.active?String(TR.diffs[TR.zoneIdx]):'Coloca 2 dedos en los cuadrados de abajo');
 }
 function extremoPointerDown(e){
-  var pod=e.target.closest('.pod'); if(!pod) return;
-  var i=pod.getAttribute('data-i');
+  var pod=e.target.closest('.pod');
   if(EN.phase==='placing'){
+    if(!pod) return;
+    var i=pod.getAttribute('data-i');
     if(i!=='6' && i!=='8') return;
     if(EN.placePid[i]!==null) return;
     e.preventDefault();
@@ -806,8 +838,14 @@ function extremoPointerDown(e){
     return;
   }
   if(EN.phase==='live'){
-    var idx=EN.to.indexOf(Number(i));
-    if(idx<0 || EN.landed[idx]) return;
+    var i=pod?pod.getAttribute('data-i'):null;
+    var idx=(i!=null)?EN.to.indexOf(Number(i)):-1;
+    if(idx<0){
+      if(TR.active){ trialClearMissTimer(); trialMiss(pod?2:1); }
+      return;
+    }
+    if(EN.landed[idx]) return;
+    trialClearMissTimer();
     EN.landed[idx]=true;
     var rt=performance.now()-EN.tStart;
     S.times.push(Math.round(rt));
@@ -816,6 +854,7 @@ function extremoPointerDown(e){
     var allDone=EN.landed[0] && EN.landed[1];
     if(allDone){ bankActiveTime(); S.roundsDone++; }
     updateNormalCount(); trialIndUpdate();
+    if(allDone && TR.active && S.roundsDone>=S.total){ EN.phase='done'; trialIndStop(); trialEndZone(); return; }
     if(allDone && S.roundsDone>=S.total){ EN.phase='done'; bankActiveTime(); trialIndStop(); finish(); return; }
     if(EN.landed[0] && EN.landed[1]){
       EN.occ=EN.to.slice();
@@ -860,6 +899,7 @@ function extremoNextTrial(){
   var t1=$('epod'+to1); if(t1){ t1.classList.add('lit'); t1.style.setProperty('--pod-color','#e23b2e'); }
   var t2=$('epod'+to2); if(t2){ t2.classList.add('lit'); t2.style.setProperty('--pod-color','#e23b2e'); }
   EN.tStart=performance.now(); S.roundStart=EN.tStart;
+  trialArmMissTimer(function(){ return EN.phase==='live'; });
 }
 function extremoPointerUp(e){
   var pid=e.pointerId;
@@ -878,6 +918,7 @@ function extremoPointerUp(e){
     if(podIdx===EN.occ[0]) EN.oldUp[0]=true;
     else if(podIdx===EN.occ[1]) EN.oldUp[1]=true;
     if(EN.oldUp[0] && EN.oldUp[1]){
+      if(TR.active){ trialClearMissTimer(); trialMiss(2); return; }
       EN.phase='done';
       trialIndStop();
       failRun('Has soltado los dos dedos a la vez. Uno debe quedarse puesto mientras mueves el otro.');
@@ -902,12 +943,18 @@ function limiteGameReset(){
   trialIndStop();
   $('indAvg').textContent='—'; $('indLast').textContent='—'; $('indTotal').textContent='0:00.0';
   for(var i=0;i<6;i++){ var p=$('npod'+i); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); } }
-  setNormalMsg('Coloca 2 dedos en los cuadrados de abajo');
+  setNormalMsg(TR.active?String(TR.diffs[TR.zoneIdx]):'Coloca 2 dedos en los cuadrados de abajo');
+}
+function limiteReplace(){
+  LM.phase='placing'; LM.occ=[4,5]; LM.placePid={'4':null,'5':null}; LM.ptrPod={}; LM.from=-1; LM.to=-1;
+  for(var i=0;i<6;i++){ var p=$('npod'+i); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); } }
+  setNormalMsg(TR.active?String(TR.diffs[TR.zoneIdx]):'Coloca 2 dedos en los cuadrados de abajo');
 }
 function limitePointerDown(e){
-  var pod=e.target.closest('.pod'); if(!pod) return;
-  var i=pod.getAttribute('data-i');
+  var pod=e.target.closest('.pod');
   if(LM.phase==='placing'){
+    if(!pod) return;
+    var i=pod.getAttribute('data-i');
     if(i!=='4' && i!=='5') return;
     if(LM.placePid[i]!==null) return;
     e.preventDefault();
@@ -919,7 +966,13 @@ function limitePointerDown(e){
     }
     return;
   }
-  if(LM.phase==='live' && i===String(LM.to)){
+  if(LM.phase==='live'){
+    var i=pod?pod.getAttribute('data-i'):null;
+    if(i!==String(LM.to)){
+      if(TR.active){ trialClearMissTimer(); trialMiss(pod?2:1); }
+      return;
+    }
+    trialClearMissTimer();
     var rt=performance.now()-LM.tStart;
     S.times.push(Math.round(rt));
     var idx=LM.occ.indexOf(Number(LM.from)); if(idx>=0) LM.occ.splice(idx,1,Number(LM.to));
@@ -928,6 +981,7 @@ function limitePointerDown(e){
     bankActiveTime();
     S.roundsDone++;
     updateNormalCount(); trialIndUpdate();
+    if(TR.active && S.roundsDone>=S.total){ LM.phase='done'; trialIndStop(); trialEndZone(); return; }
     if(S.roundsDone>=S.total){ LM.phase='done'; trialIndStop(); finish(); return; }
     if(S.s3==='pausa'){
       LM.phase='pause';
@@ -983,6 +1037,7 @@ function limiteNextTrial(){
   var fp=$('npod'+from); if(fp){ fp.classList.remove('lit'); fp.style.removeProperty('--pod-color'); }
   var tp=$('npod'+to); if(tp){ tp.classList.add('lit'); tp.style.setProperty('--pod-color','#e23b2e'); }
   LM.tStart=performance.now(); S.roundStart=LM.tStart;
+  trialArmMissTimer(function(){ return LM.phase==='live'; });
 }
 function limitePointerUp(e){
   var pid=e.pointerId;
@@ -996,15 +1051,16 @@ function limitePointerUp(e){
     return;
   }
   if(LM.phase==='countdown'){
-    /* solto un dedo antes de que empezara de verdad: a colocarse de nuevo */
-    limiteGameReset();
+    /* solto un dedo antes de que empezara de verdad: a colocarse de nuevo
+       (en Trial no se puede perder el progreso de la zona ya jugado) */
+    if(TR.active){ limiteReplace(); } else { limiteGameReset(); }
     return;
   }
   if(LM.phase==='live' || LM.phase==='pause'){
     var pinned = (LM.occ[0]===LM.from) ? LM.occ[1] : LM.occ[0];
     if(LM.ptrPod[pid]===pinned){
-      /* se levanto el dedo del pod gris (el que debia quedarse quieto):
-         el ejercicio no ha terminado, es un fallo -> sin resultados */
+      /* se levanto el dedo del pod gris (el que debia quedarse quieto) */
+      if(TR.active){ trialClearMissTimer(); trialMiss(2); return; }
       LM.phase='done';
       trialIndStop();
       failRun('Has levantado el dedo antes de tiempo. Vuelve a intentarlo.');
@@ -1236,46 +1292,141 @@ function renderRank(v1,v2,v3){
   }
 }
 
-function goHome(){ N.phase='idle'; EN.phase='idle'; LM.phase='idle'; trialIndStop(); show('home'); }
+function goHome(){ N.phase='idle'; EN.phase='idle'; LM.phase='idle'; TR.active=false; trialClearMissTimer(); trialIndStop(); show('home'); }
 
 /* ---------- Wiring ---------- */
 /* ---------- Trial: pantalla de seleccion ---------- */
 var TRIAL_RITMOS=['Pausa','Non-stop'];
-var T={ sel:'zonas', zonas:6, vueltas:1, ritmoIdx:0, zoneDiffs:[] };
+/* T: estado de configuracion del Trial.
+   Reparto de dificultades por vuelta (se repite igual en las 2 vueltas):
+   mayoria {2,3} (Extremo), luego {4,5} (Limite), menos {0,1} (Normal).
+   Para 6 zonas: 3-2-1. Para 12: se dobla, 6-4-2. */
+var T={ zonas:6, zoneDiffs:[] };
 function trialGenZones(n){
-  /* distribucion tipo trial real: mayoria dificultad 2, pocas 1 y pocas 3 */
-  var out=[], r;
-  for(var i=0;i<n;i++){ r=Math.random(); out.push(r<0.15?1:(r<0.85?2:3)); }
-  return out;
+  var nHigh=Math.round(n*(2/6)), nLow=Math.round(n*(1/6)), nMid=n-nHigh-nLow;
+  var pool=[], i;
+  for(i=0;i<nMid;i++) pool.push(Math.random()<0.5?2:3);
+  for(i=0;i<nHigh;i++) pool.push(Math.random()<0.5?4:5);
+  for(i=0;i<nLow;i++) pool.push(Math.random()<0.5?0:1);
+  for(i=pool.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var tmp=pool[i]; pool[i]=pool[j]; pool[j]=tmp; }
+  return pool;
 }
 function trialRender(){
-  $('tvZonas').textContent=T.zonas;
-  $('tvVueltas').textContent=T.vueltas;
-  $('tvRitmo').textContent=TRIAL_RITMOS[T.ritmoIdx];
-  var rows=document.querySelectorAll('#trial .trial-row');
-  for(var i=0;i<rows.length;i++){ rows[i].classList.toggle('sel', rows[i].getAttribute('data-p')===T.sel); }
+  var rows=document.querySelectorAll('#segTrialZonas button');
+  for(var i=0;i<rows.length;i++){ rows[i].classList.toggle('sel', rows[i].getAttribute('data-v')===String(T.zonas)); }
   var zc=$('trialZones'); zc.innerHTML='';
-  for(var i=0;i<T.zoneDiffs.length;i++){
-    var d=document.createElement('div'); d.className='tz-chip d'+T.zoneDiffs[i]; d.textContent=String(i+1); zc.appendChild(d);
+  for(var k=0;k<T.zoneDiffs.length;k++){
+    var d=document.createElement('div'); d.className='tz-chip d'+T.zoneDiffs[k]; d.textContent=String(T.zoneDiffs[k]); zc.appendChild(d);
   }
-  $('trialLapNote').textContent = T.vueltas>1 ? ('Mismo recorrido en las '+T.vueltas+' vueltas') : '';
-}
-function trialSelect(p){ T.sel=p; trialRender(); }
-function trialAdjust(dir){
-  if(T.sel==='zonas'){ T.zonas = T.zonas===6 ? 12 : 6; T.zoneDiffs=trialGenZones(T.zonas); }
-  else if(T.sel==='vueltas'){ T.vueltas = T.vueltas===1 ? 2 : 1; }
-  else if(T.sel==='ritmo'){ T.ritmoIdx = T.ritmoIdx===0 ? 1 : 0; }
-  trialRender();
 }
 function trialInit(){
-  var rows=document.querySelectorAll('#trial .trial-row');
-  for(var i=0;i<rows.length;i++){ (function(r){ r.addEventListener('click', function(){ trialSelect(r.getAttribute('data-p')); }); })(rows[i]); }
-  var m=$('tbMinus'), pl=$('tbPlus');
-  if(m) m.addEventListener('click', function(){ trialAdjust(-1); });
-  if(pl) pl.addEventListener('click', function(){ trialAdjust(1); });
+  var seg=$('segTrialZonas');
+  if(seg) seg.addEventListener('click', function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    T.zonas=parseInt(b.getAttribute('data-v'),10);
+    T.zoneDiffs=trialGenZones(T.zonas);
+    trialRender();
+  });
   T.zoneDiffs=trialGenZones(T.zonas);
 }
 function openTrialSetup(){ trialRender(); show('trial'); }
+
+/* ---------- Motor del Trial: zonas, fallos y resultado ---------- */
+/* Dificultad 0-5 -> modo+ritmo: 0/1=Normal, 2/3=Extremo, 4/5=Limite;
+   par=Non-stop (15 ensayos), impar=Pausa (30 ensayos). Umbral de tiempo
+   por familia: 350/450/550 ms. Un fallo (fuera=1, cuadrado erroneo=2,
+   fuera de tiempo=1, mas de los dedos permitidos=2) NO anula la zona: se
+   suma, se ensena el cartel rojo un instante y se continua colocando los
+   dedos de nuevo. Al llegar a 4 salta a 5 y se acaba la zona. */
+var TR={ active:false, lap:1, zoneIdx:0, zonesPerLap:6, diffs:[], mode:'normal', ritmo:'nonstop',
+         threshold:350, zoneFails:0, results:[[],[]], allTimes:[], missTimer:null };
+function trialModeFor(d){ return d<2?'normal':(d<4?'extremo':'limite'); }
+function trialRitmoFor(d){ return (d%2===0)?'nonstop':'pausa'; }
+function trialEnsayosFor(d){ return (d%2===0)?15:30; }
+function trialThresholdFor(mode){ return mode==='normal'?350:(mode==='extremo'?450:550); }
+function trialArmMissTimer(stillLive){
+  trialClearMissTimer();
+  TR.missTimer=setTimeout(function(){
+    TR.missTimer=null;
+    if(TR.active && stillLive()) trialMiss(1);
+  }, TR.threshold);
+}
+function trialClearMissTimer(){ if(TR.missTimer){ clearTimeout(TR.missTimer); TR.missTimer=null; } }
+function trialFlashMiss(){
+  var el=$('trialMissFlash'); if(!el) return;
+  el.style.display='flex';
+  setTimeout(function(){ el.style.display='none'; }, 650);
+}
+function trialMiss(points){
+  TR.zoneFails += points;
+  trialFlashMiss();
+  if(TR.zoneFails>=4){
+    TR.zoneFails=5;
+    if(TR.mode==='normal'){ N.phase='done'; } else if(TR.mode==='extremo'){ EN.phase='done'; } else { LM.phase='done'; }
+    trialEndZone();
+    return;
+  }
+  if(TR.mode==='normal') normalReplace();
+  else if(TR.mode==='extremo') extremoReplace();
+  else limiteReplace();
+}
+function trialStart(){
+  TR.active=true; TR.lap=1; TR.zoneIdx=0; TR.zonesPerLap=T.zonas; TR.diffs=T.zoneDiffs.slice();
+  TR.results=[[],[]]; TR.allTimes=[];
+  trialRunZone();
+}
+function trialRunZone(){
+  var d=TR.diffs[TR.zoneIdx];
+  TR.mode=trialModeFor(d); TR.ritmo=trialRitmoFor(d); TR.threshold=trialThresholdFor(TR.mode);
+  TR.zoneFails=0;
+  S.s1=TR.mode; S.s2=String(trialEnsayosFor(d)); S.s3=TR.ritmo;
+  runGame();
+}
+function trialEndZone(){
+  var score = TR.zoneFails>=4 ? 5 : TR.zoneFails;
+  TR.results[TR.lap-1][TR.zoneIdx]=score;
+  TR.allTimes=TR.allTimes.concat(S.times);
+  trialClearMissTimer();
+  trialIndStop();
+  showTrialZoneResult(score);
+}
+function showTrialZoneResult(score){
+  $('tzrLabel').textContent='VUELTA '+TR.lap+' · ZONA '+(TR.zoneIdx+1)+' DE '+TR.zonesPerLap;
+  var el=$('tzrScore'); el.textContent=String(score);
+  el.style.color = score>=5?'#b03020':(score>=3?'#b0790f':'#4E8B33');
+  var lastZone = (TR.lap===2 && TR.zoneIdx===TR.zonesPerLap-1);
+  $('tzrNextBtn').textContent = lastZone ? 'Ver resultados' : 'Siguiente zona';
+  var rows=TR.results[TR.lap-1], html='';
+  for(var i=0;i<rows.length;i++){
+    html+='<div style="display:flex;justify-content:space-between;padding:4px 8px;border-bottom:1px solid var(--seg);"><span>Zona '+(i+1)+'</span><span style="font-weight:800;">'+rows[i]+'</span></div>';
+  }
+  $('tzrTable').innerHTML=html;
+  show('trialZoneResult');
+}
+function trialNextZone(){
+  TR.zoneIdx++;
+  if(TR.zoneIdx>=TR.zonesPerLap){
+    TR.zoneIdx=0;
+    TR.lap++;
+    if(TR.lap>2){ TR.active=false; showTrialFinalResults(); return; }
+  }
+  trialRunZone();
+}
+function showTrialFinalResults(){
+  var n=TR.zonesPerLap, l1=TR.results[0], l2=TR.results[1], sum1=0, sum2=0, i;
+  for(i=0;i<n;i++){ sum1+=l1[i]||0; sum2+=l2[i]||0; }
+  var html='<table style="width:100%;border-collapse:collapse;font-size:0.8rem;">';
+  html+='<tr><th style="text-align:left;padding:6px;border-bottom:2px solid var(--rojo);">Zona</th><th style="padding:6px;border-bottom:2px solid var(--rojo);">Vuelta 1</th><th style="padding:6px;border-bottom:2px solid var(--rojo);">Vuelta 2</th></tr>';
+  for(i=0;i<n;i++){
+    html+='<tr><td style="padding:6px;border-bottom:1px solid var(--seg);">'+(i+1)+'</td><td style="text-align:center;padding:6px;border-bottom:1px solid var(--seg);font-weight:800;">'+l1[i]+'</td><td style="text-align:center;padding:6px;border-bottom:1px solid var(--seg);font-weight:800;">'+l2[i]+'</td></tr>';
+  }
+  html+='<tr><td style="padding:6px;font-weight:800;">Suma</td><td style="text-align:center;padding:6px;font-weight:800;">'+sum1+'</td><td style="text-align:center;padding:6px;font-weight:800;">'+sum2+'</td></tr>';
+  html+='</table>';
+  html+='<div style="text-align:center;margin-top:14px;font-weight:900;font-size:2rem;color:var(--rojo);">'+(sum1+sum2)+'</div>';
+  html+='<div style="text-align:center;font-weight:700;letter-spacing:1px;text-transform:uppercase;font-size:11px;color:#9A9A9A;">Resultado final</div>';
+  $('trialFinalTable').innerHTML=html;
+  show('trialFinal');
+}
 
 /* ---------- Guardian anti-trampa: cuenta dedos reales en pantalla ---------- */
 /* No evita usar 2 manos o dedos distintos a indice/anular (eso no se puede
@@ -1289,12 +1440,15 @@ function touchGuardDown(e){
   TOUCHES[e.pointerId]=true;
   var n=touchCount();
   if(N.phase!=='idle' && N.phase!=='done' && n>2){
+    if(TR.active){ trialClearMissTimer(); trialMiss(2); return; }
     N.phase='done'; trialIndStop();
     failRun('Se han detectado más de 2 dedos en pantalla.');
   } else if(EN.phase!=='idle' && EN.phase!=='done' && n>3){
+    if(TR.active){ trialClearMissTimer(); trialMiss(2); return; }
     EN.phase='done'; trialIndStop();
     failRun('Se han detectado más de 3 dedos en pantalla.');
   } else if(LM.phase!=='idle' && LM.phase!=='done' && n>3){
+    if(TR.active){ trialClearMissTimer(); trialMiss(2); return; }
     LM.phase='done'; trialIndStop();
     failRun('Se han detectado más de 3 dedos en pantalla.');
   }
