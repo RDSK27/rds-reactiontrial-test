@@ -236,6 +236,7 @@ if('serviceWorker' in navigator){
   .rank-tab { flex:1; padding:5px 4px; font-size:0.58rem; letter-spacing:0.06em; text-align:center; cursor:pointer; color:#999; font-weight:700; text-transform:uppercase; background:#fff; border:1px solid #000; border-right:none; }
   .rank-tab:last-child { border-right:1px solid #000; }
   .rank-tab.sel { color:#fff; background:#b03020; border-color:#000; }
+  .seg-dim{ opacity:0.35; pointer-events:none; }
   .rank-full-list { background:#fff; }
   .rank-full-row { display:flex; align-items:center; gap:8px; padding:5px 14px; border-bottom:1px solid #f0f0f0; }
   .rank-full-row.rank-full-me { background:#fff2ee; box-shadow:inset 3px 0 0 #b03020; }
@@ -369,7 +370,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v32</div>
+    <div class="app-ver">v33</div>
     </div>
 
   </main>
@@ -527,19 +528,19 @@ if('serviceWorker' in navigator){
     <div class="rank-body">
       <div class="rank-screen-title">Ranking completo</div>
       <div class="rank-tabs" id="seg1R">
-        <button class="rank-tab" data-v="a">1A</button>
-        <button class="rank-tab" data-v="b">1B</button>
-        <button class="rank-tab" data-v="c">1C</button>
+        <button class="rank-tab" data-v="normal">Normal</button>
+        <button class="rank-tab" data-v="extremo">Extremo</button>
+        <button class="rank-tab" data-v="limite">L&#237;mite</button>
+        <button class="rank-tab" data-v="trial">Trial</button>
       </div>
       <div class="rank-tabs" id="seg2R">
-        <button class="rank-tab" data-v="a">2A</button>
-        <button class="rank-tab" data-v="b">2B</button>
-        <button class="rank-tab" data-v="c">2C</button>
+        <button class="rank-tab" data-v="15">15</button>
+        <button class="rank-tab" data-v="30">30</button>
+        <button class="rank-tab" data-v="50">50</button>
       </div>
       <div class="rank-tabs" id="seg3R">
-        <button class="rank-tab" data-v="a">3A</button>
-        <button class="rank-tab" data-v="b">3B</button>
-        <button class="rank-tab" data-v="c">3C</button>
+        <button class="rank-tab" data-v="pausa">Pausa</button>
+        <button class="rank-tab" data-v="nonstop">Non-stop</button>
       </div>
       <div id="rkList" class="rank-full-list"></div>
     </div>
@@ -1230,6 +1231,8 @@ function finish(){
 function lbKey(a,b,c){ return 'rds_rtrial_'+a+'_'+b+'_'+c; }
 function loadLb(k){ try{ return JSON.parse(localStorage.getItem(k)||'[]'); }catch(e){ return []; } }
 function sortLb(lb){ lb.sort(function(a,b){ return MENOR_ES_MEJOR ? (a.avg-b.avg) : (b.avg-a.avg); }); }
+/* Trial: menos puntos es mejor, empate se rompe por velocidad media (tt) menor. */
+function sortLbTrial(lb){ lb.sort(function(a,b){ return (a.avg-b.avg) || ((a.tt||0)-(b.tt||0)); }); }
 
 function saveScore(avg,total){
   var nm = S.sport ? (S.name+'-'+S.sport) : S.name;
@@ -1267,12 +1270,13 @@ function getHomeName(){
   return sport ? (nm+'-'+sport) : nm;
 }
 
-function renderRankList(list, el, latest){
+function renderRankList(list, el, latest, isTrial){
   list=filterRepeated(list);
   function rankBetter(a,b){
     if(a==null) return false; if(b==null) return true;
     var far=MENOR_ES_MEJOR?9999999:-9999999;
     var av=(a.avg==null?far:a.avg), bv=(b.avg==null?far:b.avg);
+    if(isTrial && av===bv){ return (a.tt||0)<(b.tt||0); }
     return MENOR_ES_MEJOR ? av<bv : av>bv;
   }
   var medals=['gold','silver','bronze'];
@@ -1296,7 +1300,17 @@ function renderRankList(list, el, latest){
     pos.textContent=posLabel;
     var nm=document.createElement('div');nm.className='rank-full-name';nm.textContent=entry.name;
     var ms=document.createElement('div');ms.className='rank-full-ms';
-    ms.textContent=entry.avg+' '+UNIDAD;
+    if(isTrial){
+      var pts=entry.avg, ptsColor=pts>=10?'#b03020':(pts>=5?'#b0790f':'#4E8B33');
+      var ptsBadge=document.createElement('span');
+      ptsBadge.textContent=pts; ptsBadge.style.cssText='background:'+ptsColor+';color:#fff;font-weight:800;border-radius:4px;padding:1px 8px;';
+      var spd=document.createElement('span');
+      spd.textContent=entry.tt?(' '+Math.round(entry.tt)+' ms'):'';
+      spd.style.cssText='color:#666;font-weight:600;font-size:0.85em;';
+      ms.appendChild(ptsBadge); ms.appendChild(spd);
+    } else {
+      ms.textContent=entry.avg+' '+UNIDAD;
+    }
     var dt=document.createElement('div');dt.className='rank-full-date';dt.textContent=entry.ts?fmtDate(entry.ts):'';
     row.appendChild(pos);row.appendChild(nm);row.appendChild(ms);row.appendChild(dt);
     return row;
@@ -1332,8 +1346,30 @@ function segRank(id){
     var b=e.target.closest('button'); if(!b) return;
     var all=box.querySelectorAll('button'),i;
     for(i=0;i<all.length;i++) all[i].classList.remove('sel');
-    b.classList.add('sel'); rankFromSel();
+    b.classList.add('sel');
+    if(id==='seg1R') updateRankSegForMode(b.getAttribute('data-v'));
+    rankFromSel();
   });
+}
+/* Trial no tiene Ritmo propio (mezcla pausa/non-stop por zona) y usa
+   6/12 zonas en vez de 15/30/50 ensayos: al elegir Trial en el modo,
+   se atenua/desactiva la fila Ritmo y se recolocan las etiquetas de
+   la fila Ensayos. */
+function updateRankSegForMode(mode){
+  var isTrial=(mode==='trial');
+  var b2=$('seg2R').querySelectorAll('button');
+  if(isTrial){
+    b2[0].setAttribute('data-v','6'); b2[0].textContent='6';
+    b2[1].setAttribute('data-v','12'); b2[1].textContent='12';
+    if(b2[2]){ b2[2].style.display='none'; b2[2].classList.remove('sel'); }
+    if(!b2[0].classList.contains('sel') && !b2[1].classList.contains('sel')){ b2[0].classList.add('sel'); }
+  } else {
+    b2[0].setAttribute('data-v','15'); b2[0].textContent='15';
+    b2[1].setAttribute('data-v','30'); b2[1].textContent='30';
+    if(b2[2]){ b2[2].setAttribute('data-v','50'); b2[2].textContent='50'; b2[2].style.display=''; }
+    if(!$('seg2R').querySelector('button.sel')){ b2[0].classList.add('sel'); }
+  }
+  $('seg3R').classList.toggle('seg-dim', isTrial);
 }
 function updateRankSaveBtn(){
   var g=document.getElementById('btnGuardarRank'); if(!g) return;
@@ -1347,32 +1383,40 @@ function updateRankSaveBtn(){
     g.style.display='none';
   }
 }
-function showRanking(){
+function showRanking(v1Override, v2Override){
   hideRepeated=true;
   var btn=document.getElementById('btn-hide-repeated');
   if(btn) btn.textContent='Mostrar repetidos';
   updateRankSaveBtn();
-  var v1=selVal('seg1')||'a', v2=selVal('seg2')||'a', v3=selVal('seg3')||'a';
-  setSeg('seg1R',v1); setSeg('seg2R',v2); setSeg('seg3R',v3);
+  /* showRanking se usa tambien como listener directo de click (btnRank2),
+     asi que v1Override puede llegar siendo el propio evento: solo se
+     acepta si es un string real. */
+  var v1=(typeof v1Override==='string'?v1Override:null)||selVal('seg1')||'a';
+  var v2=(typeof v2Override==='string'?v2Override:null)||selVal('seg2')||'a';
+  var v3=selVal('seg3')||'a';
+  setSeg('seg1R',v1); updateRankSegForMode(v1); setSeg('seg2R',v2); if(v1!=='trial') setSeg('seg3R',v3);
   renderRank(v1,v2,v3); show('ranking');
 }
 function renderRank(v1,v2,v3){
-  var key=lbKey(v1,v2,v3); S.rankKey=key;
+  var isTrial=(v1==='trial');
+  var v3q=isTrial?'':v3;
+  var key=lbKey(v1,v2,v3q); S.rankKey=key;
   var el=$('rkList'); if(!el) return;
   var latest=null;
   if(S.saved===false && isFinite(S.resAvg) && lbKey(S.s1,S.s2,S.s3)===key){
-    latest={ name:(S.sport?(S.name+'-'+S.sport):S.name), avg:Math.round(S.resAvg), ensayos:S.resEnsayos, ts:Date.now() };
+    latest={ name:(S.sport?(S.name+'-'+S.sport):S.name), avg:Math.round(S.resAvg), tt:Math.round(S.resTotal), ensayos:S.resEnsayos, ts:Date.now() };
   } else if(S.lastRec && S.lastRecKey===key){
     latest=S.lastRec;
   }
+  var sorter=isTrial?sortLbTrial:sortLb;
   var lbLocal=loadLb(key);
-  sortLb(lbLocal);
-  renderRankList(lbLocal, el, latest);
+  sorter(lbLocal);
+  renderRankList(lbLocal, el, latest, isTrial);
   if(window.fbLoad){
-    window.fbLoad(v1,v2,v3).then(function(rows){
+    window.fbLoad(v1,v2,v3q).then(function(rows){
       if(rows && S.rankKey===key){
-        sortLb(rows);
-        renderRankList(rows, el, latest);
+        sorter(rows);
+        renderRankList(rows, el, latest, isTrial);
       }
     }).catch(function(){});
   }
@@ -1554,16 +1598,18 @@ function trialNextZone(){
   if(TR.zoneIdx>=TR.zonesPerLap){ TR.zoneIdx=0; TR.lap++; }
   trialRunZone();
 }
-function saveTrialResult(totalPoints){
-  var avgRt = TR.allTimes.length ? Math.round(TR.allTimes.reduce(function(a,b){ return a+b; },0)/TR.allTimes.length) : 0;
-  S.s1='trial'; S.s2=String(T.zonas); S.s3=''; S.resEnsayos=T.zonas;
-  saveScore(totalPoints, avgRt);
-}
 function showTrialFinalResults(){
   var total=trialTotalPointsSoFar();
   var html=trialBuildTableHTML(true);
   html+='<div class="cnum" style="text-align:center;font-size:64px;margin-top:16px;color:'+(total>=10?'#b03020':(total>=5?'#b0790f':'#4E8B33'))+';">'+total+'</div>';
   $('trialFinalTable').innerHTML=html;
+  /* Mismo patron que finish(): deja S.s1/s2/s3/resAvg/resTotal/resEnsayos
+     listos para que saveScore() y el ranking (clave 'trial'+zonas) los
+     reconozcan, tanto desde el boton de aqui como desde el de Ranking. */
+  S.s1='trial'; S.s2=String(T.zonas); S.s3='';
+  S.resAvg=total;
+  S.resTotal=TR.allTimes.length ? Math.round(TR.allTimes.reduce(function(a,b){ return a+b; },0)/TR.allTimes.length) : 0;
+  S.resEnsayos=T.zonas;
   S.saved=false;
   var gbt=$('btnGuardarTrial'); if(gbt){ gbt.disabled=false; gbt.textContent='Guardar resultado'; }
   show('trialFinal');
@@ -1612,10 +1658,10 @@ $('btnGuardar').addEventListener('click', function(){
   saveScore(S.resAvg, S.resTotal);
   S.saved=true; this.disabled=true; this.textContent='Guardado';
 });
-$('btnRank2Trial').addEventListener('click', showRanking);
+$('btnRank2Trial').addEventListener('click', function(){ showRanking('trial', String(T.zonas)); });
 $('btnGuardarTrial').addEventListener('click', function(){
   if(S.saved) return;
-  saveTrialResult(trialTotalPointsSoFar());
+  saveScore(S.resAvg, S.resTotal);
   S.saved=true; this.disabled=true; this.textContent='Guardado';
 });
 $('btnGuardarRank').addEventListener('click', function(){
