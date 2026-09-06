@@ -197,6 +197,7 @@ if('serviceWorker' in navigator){
   .results-actions { display:flex; flex-direction:row; gap:0; width:100%; z-index:10; border-top:4px solid #b03020; margin-top:0; }
   .game-ctrl-btn { flex:1; padding:13px; background:#111; color:#fff; border:1px solid #333; border-right:none; font-size:0.82rem; font-weight:900; letter-spacing:0.12em; cursor:pointer; text-transform:uppercase; display:flex; align-items:center; justify-content:center; }
   .game-ctrl-btn:last-child { border-right:1px solid #ddd; }
+  .game-ctrl-btn.blank-slot { border:none; cursor:default; pointer-events:none; }
 
 
 
@@ -370,7 +371,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v33</div>
+    <div class="app-ver">v34</div>
     </div>
 
   </main>
@@ -647,7 +648,13 @@ function runGame(){
   show('game');
   var na=$('normalArena'), ea=$('extremoArena'), sb=$('stubBtn'), rb=$('btnRepetir'), zb=$('trialZoneBar');
   if(sb) sb.style.display=(S.s1==='normal' || S.s1==='extremo' || S.s1==='limite') ? 'none' : '';
-  if(rb) rb.style.display='';
+  if(rb){
+    /* En Trial, Repetir se pulsaba sin querer y forzaba reiniciar todo el
+       trial: se deja el hueco en blanco (Inicio a la izquierda, nada a
+       la derecha) en vez de un boton activo. */
+    if(TR.active){ rb.disabled=true; rb.textContent=''; rb.classList.add('blank-slot'); rb.style.borderLeft='none'; }
+    else { rb.disabled=false; rb.textContent='↺ Repetir'; rb.classList.remove('blank-slot'); rb.style.borderLeft='1px solid #333'; }
+  }
   if(zb) zb.style.display=TR.active?'':'none';
   var gs=$('game'); if(gs) gs.classList.toggle('trial-mode', TR.active);
   if(S.s1==='extremo'){
@@ -701,7 +708,7 @@ function trialIndUpdate(){
   var tk=$('indTotalK'), tv=$('indTotal');
   if(TR.active){
     if(tk) tk.textContent='ENSAYO';
-    if(tv) tv.textContent=S.roundsDone+'/'+(S.total-S.roundsDone);
+    if(tv) tv.textContent=S.roundsDone+'/'+S.total;
   } else {
     var activeNow=S.activeAccum+(S.roundStart!=null?(performance.now()-S.roundStart):0);
     if(tk) tk.textContent='T. total';
@@ -1694,7 +1701,10 @@ $('btnGuardarRank').addEventListener('click', function(){
 function unlockAudio(){ audioCtx(); document.removeEventListener('touchstart',unlockAudio); document.removeEventListener('mousedown',unlockAudio); }
 document.addEventListener('touchstart',unlockAudio,{passive:true});
 document.addEventListener('mousedown',unlockAudio);
-document.addEventListener('click', function(e){ if(e.target.closest && e.target.closest('button')) sndButton(); }, true);
+document.addEventListener('click', function(e){
+  var b=e.target.closest && e.target.closest('button');
+  if(b && !b.classList.contains('pod')) sndButton();
+}, true);
 </script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
