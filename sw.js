@@ -1,5 +1,5 @@
 /* RDS Reaction Trial - Service Worker */
-var CACHE = 'reactiontrial-v25';
+var CACHE = 'reactiontrial-v26';
 var ASSETS = [
   './',
   './index.html',
@@ -37,10 +37,13 @@ self.addEventListener('fetch', function(e){
   var sameOrigin = (url.origin === self.location.origin);
 
   // NAVEGACION (HTML): network-first -> siempre la ultima version si hay red,
-  // con la cache como respaldo offline.
+  // con la cache como respaldo offline. {cache:'no-store'} es imprescindible:
+  // sin esto, fetch() puede devolver el index.html que el propio navegador
+  // (no el SW) tenia guardado en su cache HTTP normal, y la app tarda varios
+  // cierres/aperturas en "ponerse al dia" hasta que ese cache caduca solo.
   if(req.mode === 'navigate'){
     e.respondWith(
-      fetch(req).then(function(resp){
+      fetch(req, {cache:'no-store'}).then(function(resp){
         var copy = resp.clone();
         caches.open(CACHE).then(function(cache){ try{ cache.put('./index.html', copy); }catch(err){} });
         return resp;
