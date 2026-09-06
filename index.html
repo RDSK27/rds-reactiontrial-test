@@ -369,7 +369,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v31</div>
+    <div class="app-ver">v32</div>
     </div>
 
   </main>
@@ -661,7 +661,7 @@ function runGame(){
     if(S.s1==='limite'){ N.phase='idle'; limiteGameReset(); }
     else if(S.s1==='normal'){ LM.phase='idle'; normalReset(); }
   }
-  var tk=$('indTotalK'); if(tk) tk.textContent = TR.active ? (S.roundsDone+'/'+S.total) : 'T. total';
+  trialIndUpdate();
 }
 
 /* ---------- Modo Normal: 6 pods, 2 dedos fijos que se van turnando ---------- */
@@ -697,9 +697,15 @@ function trialIndUpdate(){
   for(i=0;i<n;i++) sum+=S.times[i];
   $('indAvg').textContent = n ? (Math.round(sum/n)+' ms') : '—';
   $('indLast').textContent = n ? (S.times[n-1]+' ms') : '—';
-  var activeNow=S.activeAccum+(S.roundStart!=null?(performance.now()-S.roundStart):0);
-  $('indTotal').textContent = fmtTime(activeNow);
-  var tk=$('indTotalK'); if(tk) tk.textContent = TR.active ? (S.roundsDone+'/'+S.total) : 'T. total';
+  var tk=$('indTotalK'), tv=$('indTotal');
+  if(TR.active){
+    if(tk) tk.textContent='ENSAYO';
+    if(tv) tv.textContent=S.roundsDone+'/'+(S.total-S.roundsDone);
+  } else {
+    var activeNow=S.activeAccum+(S.roundStart!=null?(performance.now()-S.roundStart):0);
+    if(tk) tk.textContent='T. total';
+    if(tv) tv.textContent=fmtTime(activeNow);
+  }
 }
 function trialIndStop(){ if(S.tickTimer){ clearInterval(S.tickTimer); S.tickTimer=null; } }
 /* Cronometro de "tiempo activo": solo cuenta desde que se marca un estimulo
