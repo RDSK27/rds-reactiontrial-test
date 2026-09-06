@@ -371,7 +371,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v34</div>
+    <div class="app-ver">v35</div>
     </div>
 
   </main>
@@ -867,9 +867,9 @@ function normalInit(){
    los 2 dedos antiguos se levantan sin que ninguno haya aterrizado todavia en
    su nueva marca, es fallo (como soltar el dedo fijo en Normal). El cuadrado
    que se tiene tocado se pone blanco hasta que se suelta. */
-var EN={ phase:'idle', occ:[6,8], placePid:{'6':null,'8':null}, ptrPod:{}, to:[], landed:[false,false], oldUp:[false,false], tStart:0 };
+var EN={ phase:'idle', occ:[6,8], placePid:{'6':null,'8':null}, ptrPod:{}, to:[], landed:[false,false], tStart:0 };
 function extremoGameReset(){
-  EN.phase='placing'; EN.occ=[6,8]; EN.placePid={'6':null,'8':null}; EN.ptrPod={}; EN.to=[]; EN.landed=[false,false]; EN.oldUp=[false,false]; EN.tStart=0;
+  EN.phase='placing'; EN.occ=[6,8]; EN.placePid={'6':null,'8':null}; EN.ptrPod={}; EN.to=[]; EN.landed=[false,false]; EN.tStart=0;
   S.total=parseInt(S.s2,10)||15; S.times=[]; S.roundsDone=0; S.activeAccum=0; S.roundStart=null;
   TOUCHES={};
   trialIndStop();
@@ -879,7 +879,7 @@ function extremoGameReset(){
 }
 function extremoReplace(){
   /* EN.occ ya se ha corregido (si hacia falta) antes de llamar aqui. */
-  EN.phase='placing'; EN.placePid={}; EN.ptrPod={}; EN.to=[]; EN.landed=[false,false]; EN.oldUp=[false,false];
+  EN.phase='placing'; EN.placePid={}; EN.ptrPod={}; EN.to=[]; EN.landed=[false,false];
   for(var i=0;i<9;i++){ var p=$('epod'+i); if(p){ p.classList.remove('lit','pressed'); p.style.removeProperty('--pod-color'); } }
   EN.occ.forEach(function(idx){
     EN.placePid[String(idx)]=null;
@@ -966,7 +966,7 @@ function extremoNextTrial(){
   var to1=free.splice(i1,1)[0];
   var i2=Math.floor(Math.random()*free.length);
   var to2=free.splice(i2,1)[0];
-  EN.to=[to1,to2]; EN.landed=[false,false]; EN.oldUp=[false,false];
+  EN.to=[to1,to2]; EN.landed=[false,false];
   var f1=$('epod'+EN.occ[0]); if(f1){ f1.classList.remove('lit'); f1.style.removeProperty('--pod-color'); }
   var f2=$('epod'+EN.occ[1]); if(f2){ f2.classList.remove('lit'); f2.style.removeProperty('--pod-color'); }
   var t1=$('epod'+to1); if(t1){ t1.classList.add('lit'); t1.style.setProperty('--pod-color','#e23b2e'); }
@@ -987,16 +987,9 @@ function extremoPointerUp(e){
   }
   var podIdx=EN.ptrPod[pid];
   if(podIdx!=null){ var pp=$('epod'+podIdx); if(pp) pp.classList.remove('pressed'); }
-  if(EN.phase==='live' && !EN.landed[0] && !EN.landed[1]){
-    if(podIdx===EN.occ[0]) EN.oldUp[0]=true;
-    else if(podIdx===EN.occ[1]) EN.oldUp[1]=true;
-    if(EN.oldUp[0] && EN.oldUp[1]){
-      if(TR.active){ trialClearMissTimer(); trialMiss(2,'Has pisado fuera'); return; }
-      EN.phase='done';
-      trialIndStop();
-      failRun('Has soltado los dos dedos a la vez. Uno debe quedarse puesto mientras mueves el otro.');
-    }
-  }
+  /* El fallo por soltar los 2 dedos a la vez se detecta de forma global
+     en touchGuardUp() (cuenta real de dedos en pantalla), no aqui: asi
+     se cubre todo el "live", no solo el instante antes del 1er acierto. */
 }
 function extremoCheckDrift(e){
   if(EN.phase!=='live') return;
@@ -1650,6 +1643,17 @@ function touchGuardDown(e){
 function touchGuardUp(e){
   if(e.pointerType!=='touch') return;
   delete TOUCHES[e.pointerId];
+  /* Extremo (y zonas Trial 2/3): en directo (EN.phase==='live') siempre
+     ha de quedar al menos 1 dedo pulsando, en todo momento, no solo antes
+     del 1er acierto de la ronda. Se comprueba la cuenta REAL de dedos en
+     pantalla (no solo los 2 de partida) para que no se pueda hacer
+     trampa soltando ambos y recolocando con calma, ni jugando toda la
+     ronda con un solo dedo que va y viene. */
+  if(EN.phase==='live' && touchCount()===0){
+    if(TR.active){ trialClearMissTimer(); trialMiss(2,'Has pisado fuera'); return; }
+    EN.phase='done'; trialIndStop();
+    failRun('Has levantado los dos dedos. Siempre debe quedar uno pulsado mientras mueves el otro.');
+  }
 }
 function touchGuardInit(){
   document.addEventListener('pointerdown', touchGuardDown, true);
