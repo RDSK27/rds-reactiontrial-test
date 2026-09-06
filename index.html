@@ -362,7 +362,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v18</div>
+    <div class="app-ver">v19</div>
     </div>
 
   </main>
@@ -398,6 +398,11 @@ if('serviceWorker' in navigator){
       <div><div class="k">Media</div><div class="v" id="indAvg">—</div></div>
       <div><div class="k">Último</div><div class="v" id="indLast">—</div></div>
       <div><div class="k">T. total</div><div class="v" id="indTotal">0:00.0</div></div>
+    </div>
+    <div class="trial-ind" id="trialZoneBar" style="display:none;">
+      <div><div class="k">Zona</div><div class="v" id="tzbZona">—</div></div>
+      <div><div class="k">Puntos Trial</div><div class="v" id="tzbTrialPts">0</div></div>
+      <div><div class="k">Puntos zona</div><div class="v" id="tzbZonaPts">0</div></div>
     </div>
     <div class="stub-body">
       <div class="trial-game-panel">
@@ -626,9 +631,10 @@ function startGame(){
 function repeatGame(){ runGame(); }
 function runGame(){
   show('game');
-  var na=$('normalArena'), ea=$('extremoArena'), sb=$('stubBtn'), rb=$('btnRepetir');
+  var na=$('normalArena'), ea=$('extremoArena'), sb=$('stubBtn'), rb=$('btnRepetir'), zb=$('trialZoneBar');
   if(sb) sb.style.display=(S.s1==='normal' || S.s1==='extremo' || S.s1==='limite') ? 'none' : '';
   if(rb) rb.style.display=TR.active?'none':'';
+  if(zb) zb.style.display=TR.active?'':'none';
   if(S.s1==='extremo'){
     if(na) na.style.display='none';
     if(ea) ea.style.display='';
@@ -660,8 +666,12 @@ function setNormalMsg(t){ var m=$('normalMsg'); if(m) m.textContent=t||''; }
 function setPlacementMsg(defaultText){
   if(TR.active){
     var d=TR.diffs[TR.zoneIdx];
+    var ritmoLabel = trialRitmoFor(d)==='pausa' ? 'Pausa' : 'Non-stop';
     var m=$('normalMsg');
-    if(m) m.innerHTML='<div class="tz-chip d'+d+'" style="width:46px;height:46px;font-size:22px;">'+d+'</div>';
+    if(m) m.innerHTML='<div style="display:flex;align-items:center;gap:10px;">'
+      +'<div class="tz-chip d'+d+'" style="width:46px;height:46px;font-size:22px;flex:none;">'+d+'</div>'
+      +'<div style="font-weight:900;text-transform:uppercase;letter-spacing:0.05em;font-size:15px;">'+ritmoLabel+'</div>'
+      +'</div>';
   } else {
     setNormalMsg(defaultText);
   }
@@ -1370,8 +1380,23 @@ function trialFlashMiss(){
   el.style.display='flex';
   setTimeout(function(){ el.style.display='none'; }, 650);
 }
+function trialTotalPointsSoFar(){
+  var sum=0;
+  for(var lap=0;lap<2;lap++){
+    var arr=TR.results[lap]||[];
+    for(var i=0;i<arr.length;i++){ sum+=arr[i]; }
+  }
+  return sum;
+}
+function trialUpdateBar(){
+  var zonaEl=$('tzbZona'), trialPtsEl=$('tzbTrialPts'), zonaPtsEl=$('tzbZonaPts');
+  if(zonaEl) zonaEl.textContent='V'+TR.lap+' · '+(TR.zoneIdx+1)+'/'+TR.zonesPerLap;
+  if(trialPtsEl) trialPtsEl.textContent=String(trialTotalPointsSoFar());
+  if(zonaPtsEl) zonaPtsEl.textContent=String(TR.zoneFails);
+}
 function trialMiss(points){
   TR.zoneFails += points;
+  trialUpdateBar();
   trialFlashMiss();
   if(TR.zoneFails>=4){
     TR.zoneFails=5;
@@ -1394,6 +1419,7 @@ function trialRunZone(){
   TR.zoneFails=0;
   S.s1=TR.mode; S.s2=String(trialEnsayosFor(d)); S.s3=TR.ritmo;
   runGame();
+  trialUpdateBar();
 }
 function trialEndZone(){
   var score = TR.zoneFails>=4 ? 5 : TR.zoneFails;
