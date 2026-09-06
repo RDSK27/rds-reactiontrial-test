@@ -369,7 +369,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v30</div>
+    <div class="app-ver">v31</div>
     </div>
 
   </main>
@@ -404,7 +404,7 @@ if('serviceWorker' in navigator){
     <div class="trial-ind">
       <div><div class="k">Media</div><div class="v" id="indAvg">—</div></div>
       <div><div class="k">Último</div><div class="v" id="indLast">—</div></div>
-      <div><div class="k">T. total</div><div class="v" id="indTotal">0:00.0</div></div>
+      <div><div class="k" id="indTotalK">T. total</div><div class="v" id="indTotal">0:00.0</div></div>
     </div>
     <div class="trial-ind" id="trialZoneBar" style="display:none;">
       <div><div class="k">Zona</div><div class="v" id="tzbZona">—</div></div>
@@ -661,6 +661,7 @@ function runGame(){
     if(S.s1==='limite'){ N.phase='idle'; limiteGameReset(); }
     else if(S.s1==='normal'){ LM.phase='idle'; normalReset(); }
   }
+  var tk=$('indTotalK'); if(tk) tk.textContent = TR.active ? (S.roundsDone+'/'+S.total) : 'T. total';
 }
 
 /* ---------- Modo Normal: 6 pods, 2 dedos fijos que se van turnando ---------- */
@@ -698,6 +699,7 @@ function trialIndUpdate(){
   $('indLast').textContent = n ? (S.times[n-1]+' ms') : '—';
   var activeNow=S.activeAccum+(S.roundStart!=null?(performance.now()-S.roundStart):0);
   $('indTotal').textContent = fmtTime(activeNow);
+  var tk=$('indTotalK'); if(tk) tk.textContent = TR.active ? (S.roundsDone+'/'+S.total) : 'T. total';
 }
 function trialIndStop(){ if(S.tickTimer){ clearInterval(S.tickTimer); S.tickTimer=null; } }
 /* Cronometro de "tiempo activo": solo cuenta desde que se marca un estimulo
@@ -1420,7 +1422,7 @@ var TR={ active:false, lap:1, zoneIdx:0, zonesPerLap:6, diffs:[], mode:'normal',
          threshold:350, zoneFails:0, results:[[],[]], allTimes:[], missTimer:null };
 function trialModeFor(d){ return d<2?'normal':(d<4?'extremo':'limite'); }
 function trialRitmoFor(d){ return (d%2===0)?'nonstop':'pausa'; }
-function trialEnsayosFor(d){ return 15; }
+function trialEnsayosFor(d){ return 10; }
 function trialThresholdFor(d){ return [700,725,900,925,950,1000][d]; }
 function trialArmMissTimer(stillLive){
   trialClearMissTimer();
