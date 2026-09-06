@@ -362,7 +362,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v17</div>
+    <div class="app-ver">v18</div>
     </div>
 
   </main>
@@ -653,6 +653,19 @@ var N={ phase:'idle', occ:[4,5], placePid:{'4':null,'5':null}, ptrPod:{}, to:[],
    de contador de ensayos, para que al retirarse el mensaje no cambie nada
    de tamano: es la misma caja de altura fija, solo cambia el texto. */
 function setNormalMsg(t){ var m=$('normalMsg'); if(m) m.textContent=t||''; }
+/* Placement: fuera de Trial ensena el texto de siempre; dentro de un Trial
+   ensena la dificultad como cuadrado de color (igual que en la pantalla de
+   configuracion), para que no se confunda con los numeros de la cuenta
+   atras que salen justo despues. */
+function setPlacementMsg(defaultText){
+  if(TR.active){
+    var d=TR.diffs[TR.zoneIdx];
+    var m=$('normalMsg');
+    if(m) m.innerHTML='<div class="tz-chip d'+d+'" style="width:46px;height:46px;font-size:22px;">'+d+'</div>';
+  } else {
+    setNormalMsg(defaultText);
+  }
+}
 function updateNormalCount(){ setNormalMsg(S.roundsDone+'/'+S.total); }
 function trialIndUpdate(){
   var n=S.times.length, i, sum=0;
@@ -683,12 +696,12 @@ function normalReset(){
   trialIndStop();
   $('indAvg').textContent='—'; $('indLast').textContent='—'; $('indTotal').textContent='0:00.0';
   for(var i=0;i<6;i++){ var p=$('npod'+i); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); } }
-  setNormalMsg(TR.active?String(TR.diffs[TR.zoneIdx]):'Coloca 2 dedos en los cuadrados de abajo');
+  setPlacementMsg('Coloca 2 dedos en los cuadrados de abajo');
 }
 function normalReplace(){
   N.phase='placing'; N.occ=[4,5]; N.placePid={'4':null,'5':null}; N.ptrPod={}; N.to=[]; N.landed=[false,false];
   for(var i=0;i<6;i++){ var p=$('npod'+i); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); } }
-  setNormalMsg(TR.active?String(TR.diffs[TR.zoneIdx]):'Coloca 2 dedos en los cuadrados de abajo');
+  setPlacementMsg('Coloca 2 dedos en los cuadrados de abajo');
 }
 function normalPointerDown(e){
   var pod=e.target.closest('.pod');
@@ -814,12 +827,12 @@ function extremoGameReset(){
   trialIndStop();
   $('indAvg').textContent='—'; $('indLast').textContent='—'; $('indTotal').textContent='0:00.0';
   for(var i=0;i<9;i++){ var p=$('epod'+i); if(p){ p.classList.remove('lit','pressed'); p.style.removeProperty('--pod-color'); } }
-  setNormalMsg(TR.active?String(TR.diffs[TR.zoneIdx]):'Coloca 2 dedos en los cuadrados de abajo');
+  setPlacementMsg('Coloca 2 dedos en los cuadrados de abajo');
 }
 function extremoReplace(){
   EN.phase='placing'; EN.occ=[6,8]; EN.placePid={'6':null,'8':null}; EN.ptrPod={}; EN.to=[]; EN.landed=[false,false]; EN.oldUp=[false,false];
   for(var i=0;i<9;i++){ var p=$('epod'+i); if(p){ p.classList.remove('lit','pressed'); p.style.removeProperty('--pod-color'); } }
-  setNormalMsg(TR.active?String(TR.diffs[TR.zoneIdx]):'Coloca 2 dedos en los cuadrados de abajo');
+  setPlacementMsg('Coloca 2 dedos en los cuadrados de abajo');
 }
 function extremoPointerDown(e){
   var pod=e.target.closest('.pod');
@@ -943,12 +956,12 @@ function limiteGameReset(){
   trialIndStop();
   $('indAvg').textContent='—'; $('indLast').textContent='—'; $('indTotal').textContent='0:00.0';
   for(var i=0;i<6;i++){ var p=$('npod'+i); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); } }
-  setNormalMsg(TR.active?String(TR.diffs[TR.zoneIdx]):'Coloca 2 dedos en los cuadrados de abajo');
+  setPlacementMsg('Coloca 2 dedos en los cuadrados de abajo');
 }
 function limiteReplace(){
   LM.phase='placing'; LM.occ=[4,5]; LM.placePid={'4':null,'5':null}; LM.ptrPod={}; LM.from=-1; LM.to=-1;
   for(var i=0;i<6;i++){ var p=$('npod'+i); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); } }
-  setNormalMsg(TR.active?String(TR.diffs[TR.zoneIdx]):'Coloca 2 dedos en los cuadrados de abajo');
+  setPlacementMsg('Coloca 2 dedos en los cuadrados de abajo');
 }
 function limitePointerDown(e){
   var pod=e.target.closest('.pod');
