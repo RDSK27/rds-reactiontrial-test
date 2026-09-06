@@ -363,7 +363,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v22</div>
+    <div class="app-ver">v23</div>
     </div>
 
   </main>
@@ -488,11 +488,11 @@ if('serviceWorker' in navigator){
   </section>
 
   <section id="trialZoneResult" class="screen">
-    <div class="center-body">
-      <div class="rank-sub" id="tzrLabel">VUELTA 1 &middot; ZONA 1 DE 6</div>
-      <div class="cnum" id="tzrScore">0</div>
-      <div class="fail-msg" style="font-size:14px;max-width:none;">Puntos de la zona</div>
-      <div id="tzrTable" style="width:100%;max-width:320px;margin-top:14px;"></div>
+    <div class="rank-body">
+      <div class="rank-sub" id="tzrLabel" style="margin-top:4px;">VUELTA 1 &middot; ZONA 1 DE 6</div>
+      <div class="cnum" id="tzrScore" style="text-align:center;">0</div>
+      <div class="fail-msg" style="font-size:14px;max-width:none;text-align:center;">Puntos de la zona</div>
+      <div id="tzrTable" style="margin-top:16px;"></div>
     </div>
   <div class="results-actions">
     <button class="game-ctrl-btn" onclick="goHome()">&#8592; Inicio</button>
@@ -710,8 +710,8 @@ function normalReset(){
   setPlacementMsg('Coloca 2 dedos en los cuadrados de abajo');
 }
 function normalReplace(){
-  /* sigue desde donde se dejo: NO vuelve a los cuadrados de inicio, marca en
-     gris los 2 que estaban ocupados (N.occ) para volver a colocarse ahi. */
+  /* N.occ ya se ha corregido (si hacia falta) antes de llamar aqui: se
+     recoloca siempre sobre el N.occ actual. */
   N.phase='placing'; N.placePid={}; N.ptrPod={}; N.to=[]; N.landed=[false,false];
   for(var i=0;i<6;i++){ var p=$('npod'+i); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); } }
   N.occ.forEach(function(idx){
@@ -849,7 +849,7 @@ function extremoGameReset(){
   setPlacementMsg('Coloca 2 dedos en los cuadrados de abajo');
 }
 function extremoReplace(){
-  /* sigue desde donde se dejo: marca en gris los 2 cuadrados ocupados (EN.occ). */
+  /* EN.occ ya se ha corregido (si hacia falta) antes de llamar aqui. */
   EN.phase='placing'; EN.placePid={}; EN.ptrPod={}; EN.to=[]; EN.landed=[false,false]; EN.oldUp=[false,false];
   for(var i=0;i<9;i++){ var p=$('epod'+i); if(p){ p.classList.remove('lit','pressed'); p.style.removeProperty('--pod-color'); } }
   EN.occ.forEach(function(idx){
@@ -985,7 +985,7 @@ function limiteGameReset(){
   setPlacementMsg('Coloca 2 dedos en los cuadrados de abajo');
 }
 function limiteReplace(){
-  /* sigue desde donde se dejo: marca en gris los 2 cuadrados ocupados (LM.occ). */
+  /* LM.occ ya se ha corregido (si hacia falta) antes de llamar aqui. */
   LM.phase='placing'; LM.placePid={}; LM.ptrPod={}; LM.from=-1; LM.to=-1;
   for(var i=0;i<6;i++){ var p=$('npod'+i); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); } }
   LM.occ.forEach(function(idx){
@@ -1398,11 +1398,12 @@ function trialArmMissTimer(stillLive){
   }, TR.threshold);
 }
 function trialClearMissTimer(){ if(TR.missTimer){ clearTimeout(TR.missTimer); TR.missTimer=null; } }
+var TRIAL_MISS_FLASH_MS=1150;
 function trialFlashMiss(msg){
   var el=$('trialMissFlash'); if(!el) return;
   var t=el.querySelector('div'); if(t) t.textContent=msg||'Fallo';
   el.style.display='flex';
-  setTimeout(function(){ el.style.display='none'; }, 650);
+  setTimeout(function(){ el.style.display='none'; }, TRIAL_MISS_FLASH_MS);
 }
 function trialTotalPointsSoFar(){
   var sum=0;
@@ -1418,6 +1419,21 @@ function trialUpdateBar(){
   if(trialPtsEl) trialPtsEl.textContent=String(trialTotalPointsSoFar());
   if(zonaPtsEl) zonaPtsEl.textContent=String(TR.zoneFails);
 }
+/* Al fallar, se continua como si se hubiera acertado: los cuadrados que
+   estaban en rojo (el objetivo) pasan a ser los nuevos "en gris" para
+   recolocarse ahi, en vez de volver a los de antes de esta ronda. */
+function trialFixOccAfterMiss(){
+  if(TR.mode==='normal'){
+    if(N.to && N.to.length===2) N.occ=N.to.slice();
+  } else if(TR.mode==='extremo'){
+    if(EN.to && EN.to.length===2) EN.occ=EN.to.slice();
+  } else {
+    if(LM.to>=0 && LM.from>=0){
+      var pinned=(LM.occ[0]===LM.from)?LM.occ[1]:LM.occ[0];
+      LM.occ=[pinned, LM.to];
+    }
+  }
+}
 function trialMiss(points,msg){
   TR.zoneFails += points;
   trialUpdateBar();
@@ -1428,9 +1444,10 @@ function trialMiss(points,msg){
     /* el cartel de fallo vive dentro de #game: hay que dejar que se vea y se
        quite entero ANTES de cambiar de pantalla, si no #game se oculta y el
        cartel desaparece de golpe con el. */
-    setTimeout(trialEndZone, 700);
+    setTimeout(trialEndZone, TRIAL_MISS_FLASH_MS+50);
     return;
   }
+  trialFixOccAfterMiss();
   if(TR.mode==='normal') normalReplace();
   else if(TR.mode==='extremo') extremoReplace();
   else limiteReplace();
@@ -1456,17 +1473,26 @@ function trialEndZone(){
   trialIndStop();
   showTrialZoneResult(score);
 }
+/* Tabla de 2 columnas (Vuelta 1 / Vuelta 2) compartida entre la pantalla de
+   cada zona (se va rellenando segun se juega, vacia = "—") y la final. */
+function trialBuildTableHTML(){
+  var n=TR.zonesPerLap, l1=TR.results[0]||[], l2=TR.results[1]||[], i;
+  var html='<table style="width:100%;border-collapse:collapse;font-size:0.8rem;">';
+  html+='<tr><th style="text-align:left;padding:6px;border-bottom:2px solid var(--rojo);">Zona</th><th style="padding:6px;border-bottom:2px solid var(--rojo);">Vuelta 1</th><th style="padding:6px;border-bottom:2px solid var(--rojo);">Vuelta 2</th></tr>';
+  for(i=0;i<n;i++){
+    var v1=(l1[i]!==undefined)?l1[i]:'—', v2=(l2[i]!==undefined)?l2[i]:'—';
+    html+='<tr><td style="padding:6px;border-bottom:1px solid var(--seg);">'+(i+1)+'</td><td style="text-align:center;padding:6px;border-bottom:1px solid var(--seg);font-weight:800;">'+v1+'</td><td style="text-align:center;padding:6px;border-bottom:1px solid var(--seg);font-weight:800;">'+v2+'</td></tr>';
+  }
+  html+='</table>';
+  return html;
+}
 function showTrialZoneResult(score){
   $('tzrLabel').textContent='VUELTA '+TR.lap+' · ZONA '+(TR.zoneIdx+1)+' DE '+TR.zonesPerLap;
   var el=$('tzrScore'); el.textContent=String(score);
   el.style.color = score>=5?'#b03020':(score>=3?'#b0790f':'#4E8B33');
   var lastZone = (TR.lap===2 && TR.zoneIdx===TR.zonesPerLap-1);
   $('tzrNextBtn').textContent = lastZone ? 'Ver resultados' : 'Siguiente zona';
-  var rows=TR.results[TR.lap-1], html='';
-  for(var i=0;i<rows.length;i++){
-    html+='<div style="display:flex;justify-content:space-between;padding:4px 8px;border-bottom:1px solid var(--seg);"><span>Zona '+(i+1)+'</span><span style="font-weight:800;">'+rows[i]+'</span></div>';
-  }
-  $('tzrTable').innerHTML=html;
+  $('tzrTable').innerHTML=trialBuildTableHTML();
   show('trialZoneResult');
 }
 function trialNextZone(){
@@ -1481,13 +1507,8 @@ function trialNextZone(){
 function showTrialFinalResults(){
   var n=TR.zonesPerLap, l1=TR.results[0], l2=TR.results[1], sum1=0, sum2=0, i;
   for(i=0;i<n;i++){ sum1+=l1[i]||0; sum2+=l2[i]||0; }
-  var html='<table style="width:100%;border-collapse:collapse;font-size:0.8rem;">';
-  html+='<tr><th style="text-align:left;padding:6px;border-bottom:2px solid var(--rojo);">Zona</th><th style="padding:6px;border-bottom:2px solid var(--rojo);">Vuelta 1</th><th style="padding:6px;border-bottom:2px solid var(--rojo);">Vuelta 2</th></tr>';
-  for(i=0;i<n;i++){
-    html+='<tr><td style="padding:6px;border-bottom:1px solid var(--seg);">'+(i+1)+'</td><td style="text-align:center;padding:6px;border-bottom:1px solid var(--seg);font-weight:800;">'+l1[i]+'</td><td style="text-align:center;padding:6px;border-bottom:1px solid var(--seg);font-weight:800;">'+l2[i]+'</td></tr>';
-  }
-  html+='<tr><td style="padding:6px;font-weight:800;">Suma</td><td style="text-align:center;padding:6px;font-weight:800;">'+sum1+'</td><td style="text-align:center;padding:6px;font-weight:800;">'+sum2+'</td></tr>';
-  html+='</table>';
+  var html=trialBuildTableHTML();
+  html+='<table style="width:100%;border-collapse:collapse;font-size:0.8rem;"><tr><td style="padding:6px;font-weight:800;">Suma</td><td style="text-align:center;padding:6px;font-weight:800;">'+sum1+'</td><td style="text-align:center;padding:6px;font-weight:800;">'+sum2+'</td></tr></table>';
   html+='<div style="text-align:center;margin-top:14px;font-weight:900;font-size:2rem;color:var(--rojo);">'+(sum1+sum2)+'</div>';
   html+='<div style="text-align:center;font-weight:700;letter-spacing:1px;text-transform:uppercase;font-size:11px;color:#9A9A9A;">Resultado final</div>';
   $('trialFinalTable').innerHTML=html;
