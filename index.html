@@ -376,7 +376,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v41</div>
+    <div class="app-ver">v42</div>
     </div>
 
   </main>
@@ -1366,11 +1366,16 @@ function updateRankSegForMode(mode){
   if(isTrial){
     b2[0].setAttribute('data-v','6'); b2[0].textContent='6';
     b2[1].setAttribute('data-v','12'); b2[1].textContent='12';
+    /* con el 3er boton oculto, "12" pasa a ser el ultimo VISIBLE pero
+       :last-child del CSS sigue apuntando al oculto (sigue en el DOM),
+       asi que se queda sin cerrar por la derecha: se fuerza aqui. */
+    b2[1].style.borderRight='1px solid #000';
     if(b2[2]){ b2[2].style.display='none'; b2[2].classList.remove('sel'); }
     if(!b2[0].classList.contains('sel') && !b2[1].classList.contains('sel')){ b2[0].classList.add('sel'); }
   } else {
     b2[0].setAttribute('data-v','15'); b2[0].textContent='15';
     b2[1].setAttribute('data-v','30'); b2[1].textContent='30';
+    b2[1].style.borderRight='';
     if(b2[2]){ b2[2].setAttribute('data-v','50'); b2[2].textContent='50'; b2[2].style.display=''; }
     if(!$('seg2R').querySelector('button.sel')){ b2[0].classList.add('sel'); }
   }
