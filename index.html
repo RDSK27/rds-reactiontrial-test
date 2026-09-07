@@ -376,7 +376,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v42</div>
+    <div class="app-ver">v43</div>
     </div>
 
   </main>
@@ -1551,6 +1551,12 @@ function trialMiss(points,msg){
   else limiteReplace();
 }
 function trialStart(){
+  /* trialStart() no pasa por startGame(): hay que leer aqui INI/deporte
+     igual que alli, si no S.sport se queda vacio y el nombre guardado
+     sale sin el "-DEPORTE" (ej. RDS en vez de RDS-OTR). */
+  var nm=($('user-ini-input').value||'RDS').toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);
+  S.name=nm||'RDS';
+  S.sport=($('user-sport-select')&&$('user-sport-select').value)||'';
   TR.active=true; TR.lap=1; TR.zoneIdx=0; TR.zonesPerLap=T.zonas; TR.diffs=T.zoneDiffs.slice();
   TR.results=[[],[]]; TR.allTimes=[]; TR.adaptOffset=0;
   trialRunZone();
