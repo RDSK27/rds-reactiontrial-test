@@ -376,7 +376,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v38</div>
+    <div class="app-ver">v39</div>
     </div>
 
   </main>
@@ -1474,7 +1474,7 @@ function openTrialSetup(){ trialRender(); show('trial'); }
    suma, se ensena el cartel rojo un instante y se continua colocando los
    dedos de nuevo. Al llegar a 4 salta a 5 y se acaba la zona. */
 var TR={ active:false, lap:1, zoneIdx:0, zonesPerLap:6, diffs:[], mode:'normal', ritmo:'nonstop',
-         threshold:350, zoneFails:0, results:[[],[]], allTimes:[], missTimer:null };
+         threshold:350, zoneFails:0, results:[[],[]], allTimes:[], missTimer:null, adaptOffset:0 };
 /* d=2,3 corren la mecanica de 6 pods (string interno 'limite', antes
    etiquetada Limite, ahora visible como Extremo); d=4,5 la de 9 pods
    (string interno 'extremo', antes Extremo, ahora visible como Limite).
@@ -1547,12 +1547,16 @@ function trialMiss(points,msg){
 }
 function trialStart(){
   TR.active=true; TR.lap=1; TR.zoneIdx=0; TR.zonesPerLap=T.zonas; TR.diffs=T.zoneDiffs.slice();
-  TR.results=[[],[]]; TR.allTimes=[];
+  TR.results=[[],[]]; TR.allTimes=[]; TR.adaptOffset=0;
   trialRunZone();
 }
 function trialRunZone(){
   var d=TR.diffs[TR.zoneIdx];
-  TR.mode=trialModeFor(d); TR.ritmo=trialRitmoFor(d); TR.threshold=trialThresholdFor(d);
+  TR.mode=trialModeFor(d); TR.ritmo=trialRitmoFor(d);
+  /* Umbral adaptativo: TR.adaptOffset acumula lo que han ido moviendo las
+     zonas anteriores (ver trialEndZone). Suelo de seguridad para que un
+     offset muy negativo no deje un umbral inservible (<=0). */
+  TR.threshold=Math.max(150, trialThresholdFor(d)+TR.adaptOffset);
   TR.zoneFails=0;
   S.s1=TR.mode; S.s2=String(trialEnsayosFor(d)); S.s3=TR.ritmo;
   runGame();
@@ -1560,6 +1564,12 @@ function trialRunZone(){
 }
 function trialEndZone(){
   var score = TR.zoneFails>=4 ? 5 : TR.zoneFails;
+  var dJustPlayed=TR.diffs[TR.zoneIdx];
+  /* Umbral adaptativo: un 0 en zona de dificultad 2-5 endurece 15ms;
+     un 5 en cualquier zona (incluida 0/1) relaja 25ms. Se acumula ronda
+     tras ronda y afecta a partir de la SIGUIENTE zona. */
+  if(score===0 && dJustPlayed>=2){ TR.adaptOffset -= 15; }
+  else if(score===5){ TR.adaptOffset += 25; }
   TR.results[TR.lap-1][TR.zoneIdx]=score;
   TR.allTimes=TR.allTimes.concat(S.times);
   trialClearMissTimer();
