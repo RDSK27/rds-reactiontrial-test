@@ -293,7 +293,7 @@ if('serviceWorker' in navigator){
     background:rgba(17,17,17,0.13); border:2px dashed rgba(176,48,32,0.92);
     box-shadow:0 2px 10px rgba(0,0,0,0.18); }
   #ancZone.set::before{ background:rgba(26,122,53,0.16); border-style:solid; border-color:#1a7a35; }
-  #ancLabel{ position:relative; font-family:inherit; font-weight:900; text-transform:uppercase;
+  #ancLabel{ position:relative; pointer-events:none; font-family:inherit; font-weight:900; text-transform:uppercase;
     letter-spacing:0.03em; font-size:10px; line-height:1.25; text-align:center; color:#b03020; }
   #ancZone.set #ancLabel{ color:#1a7a35; font-size:22px; }
 </style>
@@ -389,7 +389,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v45</div>
+    <div class="app-ver">v46</div>
     </div>
 
   </main>
@@ -1812,8 +1812,34 @@ document.addEventListener('pointerdown', function(e){
   if(!$('game') || !$('game').classList.contains('active')) return;
   if(!ancHit(e)) return;
   ANC.pid=e.pointerId;
+  /* soltar la captura implícita del puntero: así el dedo puede seguir apoyado
+     sin bloquear los toques en otros elementos (botones de Resultado/Fallo). */
+  try{ if(e.target && e.target.releasePointerCapture) e.target.releasePointerCapture(e.pointerId); }catch(_){}
   ancVisual();
   if(ancPlacing()) setPlacementMsg('Coloca 2 dedos en los cuadrados de abajo');
+}, true);
+
+/* Con un dedo apoyado en el ancla, iOS a veces no entrega el "click" a los
+   botones de las pantallas de fin de ejercicio hasta que se levanta. Aquí se
+   activan al soltar (pointerup) y se traga el click nativo para no duplicar. */
+var _ancBtn = null, _ancBtnT = 0;
+var END_SCREENS = ['result','fail','trialFinal','trialZoneResult'];
+document.addEventListener('pointerup', function(e){
+  if(e.pointerType!=='touch') return;
+  if(e.pointerId===ANC.pid) return;
+  var scr=document.querySelector('.screen.active');
+  if(!scr || END_SCREENS.indexOf(scr.id)<0) return;
+  var btn=e.target && e.target.closest && e.target.closest('button:not(.pod)');
+  if(!btn || btn.disabled) return;
+  btn.click();                 /* activa ya (los handlers corren aquí) */
+  _ancBtn=btn; _ancBtnT=Date.now();
+}, true);
+document.addEventListener('click', function(e){
+  var btn=e.target && e.target.closest && e.target.closest('button');
+  if(btn && btn===_ancBtn && Date.now()-_ancBtnT<700){
+    _ancBtn=null;
+    e.stopImmediatePropagation(); e.preventDefault();   /* traga el click nativo redundante */
+  }
 }, true);
 
 function ancRelease(e){
