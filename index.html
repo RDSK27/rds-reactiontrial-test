@@ -283,6 +283,20 @@ if('serviceWorker' in navigator){
   .stub-note{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#9A9A9A;font-weight:700;max-width:260px;line-height:1.5;}
   .stub-btn{padding:16px 26px;background:var(--rojo);color:#fff;border:none;border-radius:6px;font-family:inherit;font-weight:900;letter-spacing:0.12em;text-transform:uppercase;font-size:0.8rem;cursor:pointer;}
   .stub-btn:active{transform:translateY(2px);}
+
+  /* ---- Ancla anti-trampa (dedo fijo) ---- */
+  #game{ position:relative; }
+  #ancZone{ position:absolute; left:50%; top:2px;
+    transform:translateX(-50%); width:104px; height:104px; z-index:6000;
+    display:flex; align-items:center; justify-content:center;
+    pointer-events:auto; touch-action:none; -webkit-user-select:none; user-select:none; }
+  #ancZone::before{ content:""; position:absolute; inset:0; border-radius:50%;
+    background:rgba(17,17,17,0.13); border:2px dashed rgba(176,48,32,0.92);
+    box-shadow:0 2px 10px rgba(0,0,0,0.18); }
+  #ancZone.set::before{ background:rgba(26,122,53,0.16); border-style:solid; border-color:#1a7a35; }
+  #ancLabel{ position:relative; font-family:inherit; font-weight:900; text-transform:uppercase;
+    letter-spacing:0.03em; font-size:10px; line-height:1.25; text-align:center; color:#b03020; }
+  #ancZone.set #ancLabel{ color:#1a7a35; font-size:22px; }
 </style>
 </head>
 <body class="home-active">
@@ -376,7 +390,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v43</div>
+    <div class="app-ver">v44</div>
     </div>
 
   </main>
@@ -403,6 +417,9 @@ if('serviceWorker' in navigator){
   </section>
 
   <section id="game" class="screen">
+    <!-- Anti-trampa: hay que mantener un dedo fijo en este círculo durante
+         todo el ejercicio (obliga a hacerlo con una sola mano). -->
+    <div id="ancZone"><div id="ancLabel">Fija un<br>dedo aquí</div></div>
     <!-- ================================================================= -->
     <!--  ZONA DEL EJERCICIO  .  se redefine por completo en cada app       -->
     <!--  Ahora es un stub: genera una puntuacion de prueba y pasa a        -->
@@ -757,6 +774,7 @@ function normalReplace(){
 function normalPointerDown(e){
   var pod=e.target.closest('.pod');
   if(N.phase==='placing'){
+    if(ANC.pid===null){ return; }
     if(!pod) return;
     var i=pod.getAttribute('data-i');
     if(N.placePid[i]===undefined) return;
@@ -895,6 +913,7 @@ function extremoReplace(){
 function extremoPointerDown(e){
   var pod=e.target.closest('.pod');
   if(EN.phase==='placing'){
+    if(ANC.pid===null){ return; }
     if(!pod) return;
     var i=pod.getAttribute('data-i');
     if(EN.placePid[i]===undefined) return;
@@ -1043,6 +1062,7 @@ function limiteReplace(){
 function limitePointerDown(e){
   var pod=e.target.closest('.pod');
   if(LM.phase==='placing'){
+    if(ANC.pid===null){ return; }
     if(!pod) return;
     var i=pod.getAttribute('data-i');
     if(LM.placePid[i]===undefined) return;
@@ -1739,6 +1759,91 @@ document.addEventListener('click', function(e){
   var b=e.target.closest && e.target.closest('button');
   if(b && !b.classList.contains('pod')) sndButton();
 }, true);
+
+/* ================================================================
+   ANCLA ANTI-TRAMPA
+   Hay que mantener un dedo fijo en #ancZone (círculo de arriba)
+   durante todo el ejercicio: obliga a jugar con una sola mano.
+   - No se pueden colocar los 2 dedos de los cuadrados hasta anclar.
+   - Si el dedo del ancla se levanta durante el ejercicio -> fallo
+     (o -2 en Trial), igual que soltar un dedo antes de tiempo.
+   El dedo del ancla NO cuenta para el guardián de nº de dedos.
+   ================================================================ */
+var ANC = { pid:null };
+
+function ancHit(e){
+  var z=$('ancZone'); if(!z) return false;
+  var r=z.getBoundingClientRect();
+  var pad=10;
+  return e.clientX>=r.left-pad && e.clientX<=r.right+pad &&
+         e.clientY>=r.top-pad  && e.clientY<=r.bottom+pad;
+}
+function ancVisual(){
+  var z=$('ancZone'), l=$('ancLabel'); if(!z) return;
+  if(ANC.pid!=null){ z.classList.add('set'); if(l) l.textContent='✓'; }
+  else { z.classList.remove('set'); if(l) l.innerHTML='Fija un<br>dedo aquí'; }
+}
+function ancPlacing(){
+  return N.phase==='placing' || EN.phase==='placing' || LM.phase==='placing';
+}
+function ancRunning(){
+  var run=['countdown','live','pause'];
+  return run.indexOf(N.phase)>=0 || run.indexOf(EN.phase)>=0 || run.indexOf(LM.phase)>=0;
+}
+
+/* El dedo del ancla no cuenta para el guardián de nº de dedos */
+var _touchCount = touchCount;
+touchCount = function(){
+  var n=_touchCount();
+  if(ANC.pid!=null && TOUCHES[ANC.pid]) n--;
+  return n;
+};
+
+/* Mensaje de colocación: primero pide anclar */
+var _setPlacementMsg = setPlacementMsg;
+setPlacementMsg = function(t){
+  if(ANC.pid===null){ if(typeof setNormalMsg==='function') setNormalMsg('Fija un dedo en el círculo de arriba'); return; }
+  _setPlacementMsg(t);
+};
+
+document.addEventListener('pointerdown', function(e){
+  if(e.pointerType!=='touch' && e.pointerType!=='pen' && e.pointerType!=='mouse') return;
+  /* ya anclado de verdad (el dedo sigue en pantalla): no re-capturar */
+  if(ANC.pid!==null && TOUCHES[ANC.pid]) return;
+  if(!$('game') || !$('game').classList.contains('active')) return;
+  if(!ancHit(e)) return;
+  ANC.pid=e.pointerId;
+  ancVisual();
+  if(ancPlacing()) setPlacementMsg('Coloca 2 dedos en los cuadrados de abajo');
+}, true);
+
+function ancRelease(e){
+  if(e.pointerId!==ANC.pid) return;
+  ANC.pid=null;
+  ancVisual();
+  if(ancRunning()){
+    if(TR.active){ trialClearMissTimer(); trialMiss(2,'Has soltado el dedo del ancla'); }
+    else {
+      N.phase='done'; EN.phase='done'; LM.phase='done'; trialIndStop();
+      failRun('Has soltado el dedo del ancla. Mantén un dedo fijo en el círculo de arriba durante todo el ejercicio.');
+    }
+  } else if(ancPlacing()){
+    setPlacementMsg('Coloca 2 dedos en los cuadrados de abajo');
+  }
+}
+document.addEventListener('pointerup', ancRelease, true);
+document.addEventListener('pointercancel', ancRelease, true);
+
+/* Al entrar en la pantalla de juego: limpia un ancla obsoleta (dedo que ya
+   no está en pantalla) y refresca el estado visual. */
+(function(){
+  var _runGame=runGame;
+  runGame=function(){
+    if(ANC.pid!==null && !TOUCHES[ANC.pid]) ANC.pid=null;
+    _runGame();
+    ancVisual();
+  };
+})();
 </script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
