@@ -389,7 +389,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v46</div>
+    <div class="app-ver">v47</div>
     </div>
 
   </main>
@@ -891,7 +891,7 @@ function normalInit(){
    que se tiene tocado se pone blanco hasta que se suelta. */
 var EN={ phase:'idle', occ:[6,8], placePid:{'6':null,'8':null}, ptrPod:{}, to:[], landed:[false,false], tStart:0 };
 function extremoGameReset(){
-  EN.phase='placing'; EN.occ=[6,8]; EN.placePid={'6':null,'8':null}; EN.ptrPod={}; EN.to=[]; EN.landed=[false,false]; EN.tStart=0;
+  EN.phase='placing'; EN.occ=[6,8]; EN.placePid={'6':null,'8':null}; EN.ptrPod={}; EN.to=[]; EN.landed=[false,false]; EN.vacated={}; EN.tStart=0;
   S.total=parseInt(S.s2,10)||15; S.times=[]; S.roundsDone=0; S.activeAccum=0; S.roundStart=null;
   TOUCHES={};
   trialIndStop();
@@ -901,7 +901,7 @@ function extremoGameReset(){
 }
 function extremoReplace(){
   /* EN.occ ya se ha corregido (si hacia falta) antes de llamar aqui. */
-  EN.phase='placing'; EN.placePid={}; EN.ptrPod={}; EN.to=[]; EN.landed=[false,false];
+  EN.phase='placing'; EN.placePid={}; EN.ptrPod={}; EN.to=[]; EN.landed=[false,false]; EN.vacated={};
   for(var i=0;i<9;i++){ var p=$('epod'+i); if(p){ p.classList.remove('lit','pressed'); p.style.removeProperty('--pod-color'); } }
   EN.occ.forEach(function(idx){
     EN.placePid[String(idx)]=null;
@@ -940,6 +940,18 @@ function extremoPointerDown(e){
     EN.ptrPod[e.pointerId]=Number(i);
     pod.classList.add('pressed'); pod.style.setProperty('--pod-color','#8a8a8a');
     var allDone=EN.landed[0] && EN.landed[1];
+    if(allDone && !(EN.vacated[EN.occ[0]] && EN.vacated[EN.occ[1]])){
+      /* Anti-trampa: para completar la ronda, los 2 dedos que estaban en
+         las posiciones viejas tienen que haberse movido de verdad (cada
+         ronda los 2 objetivos nuevos caen en cuadrados distintos a los
+         actuales, asi que en juego limpio SIEMPRE hay que mover los 2).
+         Si alguna posicion vieja nunca se libero, un dedo se ha quedado
+         fijo y el otro ha hecho las 2 pulsaciones el solo. */
+      if(TR.active){ trialClearMissTimer(); trialMiss(2,'Un dedo se ha quedado fijo'); return; }
+      EN.phase='done'; trialIndStop();
+      failRun('Un dedo se ha quedado fijo todo el rato. Los 2 dedos tienen que moverse: no vale dejar uno quieto y tocar solo con el otro.');
+      return;
+    }
     if(allDone){
       /* el resultado es UNO por ronda: lo que se tarda en llegar con el
          segundo dedo al segundo cuadrado, no un tiempo por cada uno. El
@@ -989,7 +1001,7 @@ function extremoNextTrial(){
   var to1=free.splice(i1,1)[0];
   var i2=Math.floor(Math.random()*free.length);
   var to2=free.splice(i2,1)[0];
-  EN.to=[to1,to2]; EN.landed=[false,false];
+  EN.to=[to1,to2]; EN.landed=[false,false]; EN.vacated={};
   var f1=$('epod'+EN.occ[0]); if(f1){ f1.classList.remove('lit'); f1.style.removeProperty('--pod-color'); }
   var f2=$('epod'+EN.occ[1]); if(f2){ f2.classList.remove('lit'); f2.style.removeProperty('--pod-color'); }
   var t1=$('epod'+to1); if(t1){ t1.classList.add('lit'); t1.style.setProperty('--pod-color','#e23b2e'); }
@@ -1013,6 +1025,13 @@ function extremoPointerUp(e){
   /* El fallo por soltar los 2 dedos a la vez se detecta de forma global
      en touchGuardUp() (cuenta real de dedos en pantalla), no aqui: asi
      se cubre todo el "live", no solo el instante antes del 1er acierto. */
+  /* Anti-trampa: registra que esta posicion VIEJA (una de las 2 que habia
+     que abandonar esta ronda) se ha liberado de verdad. Si al completarse
+     la ronda alguna de las 2 sigue sin liberarse, es que ese dedo nunca
+     se ha movido (trampa: un dedo fijo + el otro haciendo todo el trabajo). */
+  if(EN.phase==='live' && podIdx!=null && (podIdx===EN.occ[0] || podIdx===EN.occ[1])){
+    EN.vacated[podIdx]=true;
+  }
 }
 function extremoCheckDrift(e){
   if(EN.phase!=='live') return;
