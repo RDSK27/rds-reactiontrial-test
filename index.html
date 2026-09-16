@@ -288,7 +288,11 @@ if('serviceWorker' in navigator){
   #ancZone{ position:fixed; left:50%; top:calc(env(safe-area-inset-top,0px) + 2px);
     transform:translateX(-50%); width:100px; height:100px; z-index:6000;
     display:flex; align-items:center; justify-content:center;
-    pointer-events:auto; touch-action:none; -webkit-user-select:none; user-select:none; }
+    pointer-events:auto; touch-action:none; -webkit-user-select:none; user-select:none;
+    opacity:0; } /* invisible fuera de la pantalla de juego -- pointer-events se queda
+    en auto a proposito, el ancla sigue siendo funcional (se puede fijar/mantener el
+    dedo) en cualquier pantalla, solo se OCULTA visualmente. Ver body.game-active. */
+  body.game-active #ancZone{ opacity:1; }
   #ancZone::before{ content:""; position:absolute; inset:0; border-radius:50%;
     background:rgba(17,17,17,0.13); border:2px dashed rgba(176,48,32,0.92);
     box-shadow:0 2px 10px rgba(0,0,0,0.18); }
@@ -395,7 +399,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v48</div>
+    <div class="app-ver">v49</div>
     </div>
 
   </main>
@@ -603,6 +607,7 @@ function show(id){
   for(var i=0;i<s.length;i++) s[i].classList.remove('active');
   $(id).classList.add('active');
   document.body.classList.toggle('home-active', id==='home');
+  document.body.classList.toggle('game-active', id==='game');
 }
 function two(n){ return (n<10?'0':'')+n; }
 function fmtTime(ms){ var cs=Math.floor(ms/10), cc=cs%100, s=Math.floor(cs/100), sec=s%60, m=Math.floor(s/60); return m+':'+two(sec)+'.'+two(cc); }
