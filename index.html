@@ -399,7 +399,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v49</div>
+    <div class="app-ver">v50</div>
     </div>
 
   </main>
@@ -954,34 +954,54 @@ function extremoPointerDown(e){
          ronda los 2 objetivos nuevos caen en cuadrados distintos a los
          actuales, asi que en juego limpio SIEMPRE hay que mover los 2).
          Si alguna posicion vieja nunca se libero, un dedo se ha quedado
-         fijo y el otro ha hecho las 2 pulsaciones el solo. */
-      if(TR.active){ trialClearMissTimer(); trialMiss(2,'Un dedo se ha quedado fijo'); return; }
-      EN.phase='done'; trialIndStop();
-      failRun('Un dedo se ha quedado fijo todo el rato. Los 2 dedos tienen que moverse: no vale dejar uno quieto y tocar solo con el otro.');
+         fijo y el otro ha hecho las 2 pulsaciones el solo.
+         OJO (2026-09-17, corregido tras reproducirlo con toques sinteticos):
+         el pointerup del dedo VIEJO puede llegar DESPUES del pointerdown
+         del nuevo objetivo en un toque rapido real -- el orden entre dos
+         punteros distintos no esta garantizado por el navegador. Antes
+         esto fallaba el ejercicio en el acto aunque el dedo SI se hubiera
+         movido de verdad, solo que su pointerup aun no se habia procesado.
+         Ahora se da un margen corto para que ese pointerup pendiente
+         llegue y actualice EN.vacated antes de decidir de verdad -- si de
+         verdad no se ha movido (trampa real), sigue fallando igual, solo
+         que ~70ms mas tarde en vez de al instante. */
+      var occ0=EN.occ[0], occ1=EN.occ[1], recheckTok=(EN.recheckTok=(EN.recheckTok||0)+1);
+      setTimeout(function(){
+        if(EN.phase!=='live' || EN.recheckTok!==recheckTok) return;
+        if(EN.vacated[occ0] && EN.vacated[occ1]){ extremoFinishRound(); return; }
+        if(TR.active){ trialClearMissTimer(); trialMiss(2,'Un dedo se ha quedado fijo'); return; }
+        EN.phase='done'; trialIndStop();
+        failRun('Un dedo se ha quedado fijo todo el rato. Los 2 dedos tienen que moverse: no vale dejar uno quieto y tocar solo con el otro.');
+      }, 70);
       return;
     }
-    if(allDone){
-      /* el resultado es UNO por ronda: lo que se tarda en llegar con el
-         segundo dedo al segundo cuadrado, no un tiempo por cada uno. El
-         limite de tiempo (fallo por tardanza) tampoco se anula hasta que
-         llega este segundo dedo. */
-      trialClearMissTimer();
-      S.times.push(Math.round(performance.now()-EN.tStart));
-      bankActiveTime(); S.roundsDone++;
-    }
+    if(allDone){ extremoFinishRound(); return; }
     updateNormalCount(); trialIndUpdate();
-    if(allDone && TR.active && S.roundsDone>=S.total){ EN.phase='done'; trialIndStop(); trialEndZone(); return; }
-    if(allDone && S.roundsDone>=S.total){ EN.phase='done'; bankActiveTime(); trialIndStop(); finish(); return; }
-    if(EN.landed[0] && EN.landed[1]){
-      EN.occ=EN.to.slice();
-      if(S.s3==='pausa'){
-        EN.phase='pause';
-        var w=500+Math.random()*1500;
-        setTimeout(function(){ if(EN.phase==='pause') extremoNextTrial(); }, w);
-      } else {
-        extremoNextTrial();
-      }
-    }
+  }
+}
+/* Cierre de ronda (los 2 dedos ya aterrizaron de verdad en su objetivo, sin
+   trampa): puntua, avanza el contador y programa la siguiente ronda o el
+   final del ejercicio. Extraido de extremoPointerDown para poder llamarse
+   tanto al instante (caso normal) como desde el recheck diferido de
+   arriba (caso "parecia trampa pero el pointerup llego tarde"). */
+function extremoFinishRound(){
+  /* el resultado es UNO por ronda: lo que se tarda en llegar con el
+     segundo dedo al segundo cuadrado, no un tiempo por cada uno. El
+     limite de tiempo (fallo por tardanza) tampoco se anula hasta que
+     llega este segundo dedo. */
+  trialClearMissTimer();
+  S.times.push(Math.round(performance.now()-EN.tStart));
+  bankActiveTime(); S.roundsDone++;
+  updateNormalCount(); trialIndUpdate();
+  if(TR.active && S.roundsDone>=S.total){ EN.phase='done'; trialIndStop(); trialEndZone(); return; }
+  if(S.roundsDone>=S.total){ EN.phase='done'; bankActiveTime(); trialIndStop(); finish(); return; }
+  EN.occ=EN.to.slice();
+  if(S.s3==='pausa'){
+    EN.phase='pause';
+    var w=500+Math.random()*1500;
+    setTimeout(function(){ if(EN.phase==='pause') extremoNextTrial(); }, w);
+  } else {
+    extremoNextTrial();
   }
 }
 function extremoStartCountdown(){
