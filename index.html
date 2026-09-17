@@ -163,10 +163,21 @@ if('serviceWorker' in navigator){
   #game.trial-mode .trial-game-msg{ margin-bottom:4px; }
   #game.trial-mode .stub-body{ padding:12px; }
 
-  /* ===== Arena modo Extremo: 9 pods (3x3), 2 dedos que cambian a la vez + deriva continua ===== */
-  .trial-arena.ex9{ --pod-size:90px; --pod-gap:14px; grid-template-columns:repeat(3,var(--pod-size)); grid-template-rows:repeat(3,var(--pod-size)); }
   .trial-arena .pod:active{ transform:translateY(1px); }
   .trial-arena .pod.home{ grid-row:3; }
+
+  /* ===== Arena modo Limite (EN): los mismos 6 pods de Normal/Extremo, pero
+     sueltos por la pantalla en movimiento libre en vez de en rejilla fija
+     -- reescrito de cero 2026-09-17, pedido expreso. Sin fondo negro (a
+     diferencia del resto de modos, que sí lo llevan en .trial-game-panel):
+     el campo de juego tiene que verse "abierto", no una caja. El texto del
+     mensaje (pensado para el panel oscuro) pasa a oscuro sobre el fondo
+     claro de #game. Los 6 pods dejan de posicionarse por grid (JS los mueve
+     con left/top en px, en coordenadas LOCALES del propio #normalArena). */
+  #game.en-free .trial-game-panel{ background:transparent; border:none; box-shadow:none; padding:0; width:100%; max-width:100%; }
+  #game.en-free .trial-game-msg{ color:#333; }
+  #game.en-free #normalArena{ display:block; position:relative; width:100%; height:min(62vh,520px); touch-action:none; }
+  #game.en-free #normalArena .pod{ position:absolute; width:var(--en-pod-size,84px); height:var(--en-pod-size,84px); margin:0; }
 
 
   footer{
@@ -329,10 +340,11 @@ if('serviceWorker' in navigator){
     <div class="segment" id="seg1">
       <button class="sel" data-v="normal">Normal</button>
       <!-- Intercambiados: "Extremo" ahora es la mecanica de 6 pods que
-           antes era "Limite" (data-v="limite"), y "Limite" ahora es la
-           de 9 pods que antes era "Extremo" (data-v="extremo"). El
-           nombre interno (limite/extremo, EN/LM, epod/npod) no cambia,
-           solo la etiqueta visible que el usuario elige. -->
+           antes era "Limite" (data-v="limite"), y "Limite" (data-v="extremo",
+           estado interno EN) es la de los mismos 6 pods de Normal/Extremo
+           pero sueltos por la pantalla, en movimiento libre -- reescrita
+           de cero 2026-09-17. El nombre interno (limite/extremo, EN/LM) no
+           cambia, solo la etiqueta visible que el usuario elige. -->
       <button data-v="limite">Extremo</button>
       <button data-v="extremo">Límite</button>
     </div>
@@ -399,7 +411,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v50</div>
+    <div class="app-ver">v51</div>
     </div>
 
   </main>
@@ -451,17 +463,6 @@ if('serviceWorker' in navigator){
           <button type="button" class="pod" id="npod3" data-i="3"></button>
           <button type="button" class="pod home" id="npod4" data-i="4"></button>
           <button type="button" class="pod home" id="npod5" data-i="5"></button>
-        </div>
-        <div class="trial-arena ex9" id="extremoArena" style="display:none;">
-          <button type="button" class="pod" id="epod0" data-i="0"></button>
-          <button type="button" class="pod" id="epod1" data-i="1"></button>
-          <button type="button" class="pod" id="epod2" data-i="2"></button>
-          <button type="button" class="pod" id="epod3" data-i="3"></button>
-          <button type="button" class="pod" id="epod4" data-i="4"></button>
-          <button type="button" class="pod" id="epod5" data-i="5"></button>
-          <button type="button" class="pod home" id="epod6" data-i="6"></button>
-          <button type="button" class="pod" id="epod7" data-i="7"></button>
-          <button type="button" class="pod home" id="epod8" data-i="8"></button>
         </div>
       </div>
       <button class="stub-btn" id="stubBtn" onclick="generarStub()" style="margin-top:14px;">Generar resultado de prueba</button>
@@ -675,7 +676,7 @@ function startGame(){
 function repeatGame(){ if(TR.active){ trialStart(); return; } runGame(); }
 function runGame(){
   show('game');
-  var na=$('normalArena'), ea=$('extremoArena'), sb=$('stubBtn'), rb=$('btnRepetir'), zb=$('trialZoneBar');
+  var na=$('normalArena'), sb=$('stubBtn'), rb=$('btnRepetir'), zb=$('trialZoneBar');
   if(sb) sb.style.display=(S.s1==='normal' || S.s1==='extremo' || S.s1==='limite') ? 'none' : '';
   if(rb){
     /* En Trial, Repetir se pulsaba sin querer y forzaba reiniciar todo el
@@ -686,15 +687,17 @@ function runGame(){
   }
   if(zb) zb.style.display=TR.active?'':'none';
   var gs=$('game'); if(gs) gs.classList.toggle('trial-mode', TR.active);
+  if(na) na.style.display='';
+  if(gs) gs.classList.toggle('en-free', S.s1==='extremo'); // Limite (EN): sin fondo negro, pods sueltos
   if(S.s1==='extremo'){
-    if(na) na.style.display='none';
-    if(ea) ea.style.display='';
     N.phase='idle'; LM.phase='idle';
     extremoGameReset();
   } else {
-    if(ea) ea.style.display='none';
-    if(na) na.style.display='';
     EN.phase='idle';
+    /* Limpia el left/top inline que deja el modo Limite -- si no, con
+       position:relative (el de la rejilla normal) esos valores seguirian
+       desplazando el pod de su sitio en el grid. */
+    for(var enI=0; enI<6; enI++){ var enP=$('npod'+enI); if(enP){ enP.style.removeProperty('left'); enP.style.removeProperty('top'); } }
     if(S.s1==='limite'){ N.phase='idle'; limiteGameReset(); }
     else if(S.s1==='normal'){ LM.phase='idle'; normalReset(); }
   }
@@ -891,29 +894,129 @@ function normalInit(){
   document.addEventListener('pointercancel', normalPointerUp);
 }
 
-/* ---------- Modo Extremo: 9 pods fijos (3x3), los 2 estimulos se marcan a la vez ---------- */
-/* Se marcan los 2 objetivos a la vez, pero se resuelven de uno en uno: hay que
-   mantener uno de los 2 dedos antiguos puesto mientras se mueve el otro. Si
-   los 2 dedos antiguos se levantan sin que ninguno haya aterrizado todavia en
-   su nueva marca, es fallo (como soltar el dedo fijo en Normal). El cuadrado
-   que se tiene tocado se pone blanco hasta que se suelta. */
-var EN={ phase:'idle', occ:[6,8], placePid:{'6':null,'8':null}, ptrPod:{}, to:[], landed:[false,false], tStart:0 };
+/* ---------- Modo Limite (EN): los mismos 6 pods de Normal/Extremo, pero
+   sueltos por la pantalla en movimiento libre -- reescrito de cero
+   2026-09-17, pedido expreso (la version anterior de 9 pods fijos daba
+   fallo constante e injustificado). Mecanica: 2 pods quedan "en casa"
+   abajo (como en Normal/Extremo) y son donde se colocan los 2 dedos de
+   partida; los otros 4 aparecen dispersos por la pantalla, quietos hasta
+   que se completa la colocacion. En cuanto los 2 dedos estan puestos, los
+   4 sueltos empiezan a moverse solos sin parar, chocando entre si (y con
+   los que esten anclados) y cambiando de trayectoria al chocar. Sale UN
+   objetivo rojo (uno de los que esta en movimiento). Para acertarlo: se
+   mantiene fijo un dedo en uno de los 2 grises, se levanta el OTRO (ese
+   gris pasa a moverse tambien) y se persigue al rojo con el dedo libre.
+   Al tocarlo, se queda fijo justo donde este en ese momento (pasa a ser
+   el nuevo gris), sale un nuevo rojo entre los que esten sueltos, y se
+   repite. */
+var EN_POD_SIZE=84, EN_POD_R=EN_POD_SIZE/2, EN_POD_SPEED=105; // px, px/s
+var EN={ phase:'idle', pods:null, occ:[4,5], target:-1, releasing:null,
+         placePid:{'4':null,'5':null}, ptrPod:{}, tStart:0, raf:0, lastTs:0,
+         arenaW:0, arenaH:0 };
+function enMeasureArena(){
+  var a=$('normalArena'); if(!a) return;
+  var r=a.getBoundingClientRect();
+  EN.arenaW=r.width||320; EN.arenaH=r.height||420;
+}
+function enRandomVel(){
+  var ang=Math.random()*Math.PI*2;
+  return { vx:Math.cos(ang)*EN_POD_SPEED, vy:Math.sin(ang)*EN_POD_SPEED };
+}
+function enSetupPods(){
+  enMeasureArena();
+  var w=EN.arenaW, h=EN.arenaH;
+  EN.pods=[];
+  for(var i=0;i<6;i++) EN.pods.push({idx:i,x:0,y:0,vx:0,vy:0,r:EN_POD_R,free:false});
+  /* 2 "casa" abajo, fijos de partida (misma idea que la fila inferior de
+     Normal/Extremo, aqui en coordenadas libres en vez de grid). */
+  EN.pods[4].x=w*0.32; EN.pods[4].y=h-EN_POD_R-14;
+  EN.pods[5].x=w*0.68; EN.pods[5].y=h-EN_POD_R-14;
+  /* Los otros 4, dispersos por el resto de la pantalla (quietos de
+     entrada -- no arrancan a moverse hasta completar la colocacion). */
+  var spots=[[0.22,0.20],[0.78,0.20],[0.22,0.50],[0.78,0.50]];
+  for(var k=0;k<4;k++){
+    var p=EN.pods[k], sp=spots[k];
+    p.x=w*sp[0]+(Math.random()-0.5)*w*0.08;
+    p.y=h*sp[1]+(Math.random()-0.5)*h*0.06;
+    p.x=Math.max(p.r,Math.min(w-p.r,p.x));
+    p.y=Math.max(p.r,Math.min(h-p.r,p.y));
+    var v=enRandomVel(); p.vx=v.vx; p.vy=v.vy;
+  }
+  EN.occ=[4,5]; EN.target=-1; EN.releasing=null;
+}
+function enRenderPod(i){
+  var p=EN.pods && EN.pods[i], el=$('npod'+i);
+  if(!p || !el) return;
+  el.style.left=(p.x-p.r)+'px'; el.style.top=(p.y-p.r)+'px';
+}
+function enRenderAll(){ for(var i=0;i<6;i++) enRenderPod(i); }
+/* Fisica de un frame: mueve los pods "free" (no anclados por un dedo),
+   rebotan en los bordes del arena y chocan entre si -- y con los anclados,
+   que actuan como obstaculo fijo -- cambiando de trayectoria (rebote
+   elastico simple, mismo patron que resolveBallCollisions de reactiontenis). */
+function enStep(dt){
+  var w=EN.arenaW, h=EN.arenaH, pods=EN.pods, i, p;
+  for(i=0;i<6;i++){
+    p=pods[i]; if(!p.free) continue;
+    p.x+=p.vx*dt; p.y+=p.vy*dt;
+    if(p.x-p.r<0){ p.x=p.r; p.vx=Math.abs(p.vx); } else if(p.x+p.r>w){ p.x=w-p.r; p.vx=-Math.abs(p.vx); }
+    if(p.y-p.r<0){ p.y=p.r; p.vy=Math.abs(p.vy); } else if(p.y+p.r>h){ p.y=h-p.r; p.vy=-Math.abs(p.vy); }
+  }
+  for(var a=0;a<6;a++){
+    for(var b=a+1;b<6;b++){
+      var A=pods[a], B=pods[b];
+      if(!A.free && !B.free) continue;
+      var dx=B.x-A.x, dy=B.y-A.y, dist=Math.hypot(dx,dy)||0.0001, minDist=A.r+B.r;
+      if(dist>=minDist) continue;
+      var nx=dx/dist, ny=dy/dist, overlap=minDist-dist;
+      if(A.free && B.free){
+        A.x-=nx*overlap/2; A.y-=ny*overlap/2; B.x+=nx*overlap/2; B.y+=ny*overlap/2;
+        var avn=A.vx*nx+A.vy*ny, bvn=B.vx*nx+B.vy*ny;
+        A.vx+=(bvn-avn)*nx; A.vy+=(bvn-avn)*ny; B.vx+=(avn-bvn)*nx; B.vy+=(avn-bvn)*ny;
+      } else if(A.free){
+        A.x-=nx*overlap; A.y-=ny*overlap;
+        var avn2=A.vx*nx+A.vy*ny; A.vx-=2*avn2*nx; A.vy-=2*avn2*ny;
+      } else {
+        B.x+=nx*overlap; B.y+=ny*overlap;
+        var bvn2=B.vx*nx+B.vy*ny; B.vx-=2*bvn2*nx; B.vy-=2*bvn2*ny;
+      }
+    }
+  }
+}
+function enLoop(ts){
+  if(!EN.lastTs) EN.lastTs=ts;
+  var dt=Math.min(0.05,(ts-EN.lastTs)/1000);
+  EN.lastTs=ts;
+  if(EN.phase==='idle' || EN.phase==='done'){ EN.raf=0; EN.lastTs=0; return; }
+  enStep(dt); enRenderAll();
+  EN.raf=requestAnimationFrame(enLoop);
+}
+function enStartLoop(){ if(EN.raf) return; EN.lastTs=0; EN.raf=requestAnimationFrame(enLoop); }
 function extremoGameReset(){
-  EN.phase='placing'; EN.occ=[6,8]; EN.placePid={'6':null,'8':null}; EN.ptrPod={}; EN.to=[]; EN.landed=[false,false]; EN.vacated={}; EN.tStart=0;
+  EN.phase='placing';
+  enSetupPods();
+  EN.placePid={'4':null,'5':null}; EN.ptrPod={};
   S.total=parseInt(S.s2,10)||15; S.times=[]; S.roundsDone=0; S.activeAccum=0; S.roundStart=null;
   TOUCHES={}; if(typeof ANC!=='undefined' && ANC.pid!=null) TOUCHES[ANC.pid]=true;
   trialIndStop();
   $('indAvg').textContent='—'; $('indLast').textContent='—'; $('indTotal').textContent='0:00.0';
-  for(var i=0;i<9;i++){ var p=$('epod'+i); if(p){ p.classList.remove('lit','pressed'); p.style.removeProperty('--pod-color'); } }
+  for(var i=0;i<6;i++){ var p=$('npod'+i); if(p){ p.classList.remove('lit','pressed'); p.style.removeProperty('--pod-color'); } }
+  enRenderAll();
+  EN.occ.forEach(function(idx){ var p=$('npod'+idx); if(p){ p.classList.add('lit'); p.style.setProperty('--pod-color','#8a8a8a'); } });
   setPlacementMsg('Coloca 2 dedos en los cuadrados de abajo');
+  enStartLoop();
 }
 function extremoReplace(){
-  /* EN.occ ya se ha corregido (si hacia falta) antes de llamar aqui. */
-  EN.phase='placing'; EN.placePid={}; EN.ptrPod={}; EN.to=[]; EN.landed=[false,false]; EN.vacated={};
-  for(var i=0;i<9;i++){ var p=$('epod'+i); if(p){ p.classList.remove('lit','pressed'); p.style.removeProperty('--pod-color'); } }
+  /* EN.occ ya se ha corregido (si hacia falta) antes de llamar aqui. Todo
+     se queda quieto donde este mientras se vuelven a colocar los 2 dedos. */
+  EN.phase='placing'; EN.placePid={}; EN.ptrPod={}; EN.target=-1; EN.releasing=null;
+  for(var i=0;i<6;i++){
+    if(EN.pods && EN.pods[i]) EN.pods[i].free=false;
+    var p=$('npod'+i); if(p){ p.classList.remove('lit','pressed'); p.style.removeProperty('--pod-color'); }
+  }
   EN.occ.forEach(function(idx){
     EN.placePid[String(idx)]=null;
-    var p=$('epod'+idx); if(p){ p.classList.add('lit'); p.style.setProperty('--pod-color','#8a8a8a'); }
+    var p=$('npod'+idx); if(p){ p.classList.add('lit'); p.style.setProperty('--pod-color','#8a8a8a'); }
   });
   setPlacementMsg('Coloca 2 dedos en los cuadrados de abajo');
 }
@@ -932,76 +1035,41 @@ function extremoPointerDown(e){
     if(pKeys.every(function(k){ return EN.placePid[k]!==null; })){
       EN.ptrPod={};
       pKeys.forEach(function(k){ EN.ptrPod[EN.placePid[k]]=Number(k); });
+      /* A partir de aqui los cuadrados sueltos empiezan a moverse de
+         verdad -- pedido expreso: "una vez coloco los dedos abajo
+         comienzan a moverse libremente". */
+      for(var j=0;j<6;j++){ if(EN.occ.indexOf(j)<0) EN.pods[j].free=true; }
       extremoStartCountdown();
     }
     return;
   }
   if(EN.phase==='live'){
-    var i=pod?pod.getAttribute('data-i'):null;
-    var idx=(i!=null)?EN.to.indexOf(Number(i)):-1;
-    if(idx<0){
+    var i=pod?Number(pod.getAttribute('data-i')):null;
+    if(i==null || i!==EN.target){
       if(TR.active){ trialClearMissTimer(); trialMiss(pod?2:1,'Has pisado fuera'); }
       return;
     }
-    if(EN.landed[idx]) return;
-    EN.landed[idx]=true;
-    EN.ptrPod[e.pointerId]=Number(i);
+    trialClearMissTimer();
+    S.times.push(Math.round(performance.now()-EN.tStart));
+    /* Aterriza en el objetivo movil: se queda fijo justo donde este ahora
+       mismo, sustituyendo en occ al gris que se solto para llegar hasta el. */
+    EN.pods[i].free=false; EN.pods[i].vx=0; EN.pods[i].vy=0;
+    EN.ptrPod[e.pointerId]=i;
     pod.classList.add('pressed'); pod.style.setProperty('--pod-color','#8a8a8a');
-    var allDone=EN.landed[0] && EN.landed[1];
-    if(allDone && !(EN.vacated[EN.occ[0]] && EN.vacated[EN.occ[1]])){
-      /* Anti-trampa: para completar la ronda, los 2 dedos que estaban en
-         las posiciones viejas tienen que haberse movido de verdad (cada
-         ronda los 2 objetivos nuevos caen en cuadrados distintos a los
-         actuales, asi que en juego limpio SIEMPRE hay que mover los 2).
-         Si alguna posicion vieja nunca se libero, un dedo se ha quedado
-         fijo y el otro ha hecho las 2 pulsaciones el solo.
-         OJO (2026-09-17, corregido tras reproducirlo con toques sinteticos):
-         el pointerup del dedo VIEJO puede llegar DESPUES del pointerdown
-         del nuevo objetivo en un toque rapido real -- el orden entre dos
-         punteros distintos no esta garantizado por el navegador. Antes
-         esto fallaba el ejercicio en el acto aunque el dedo SI se hubiera
-         movido de verdad, solo que su pointerup aun no se habia procesado.
-         Ahora se da un margen corto para que ese pointerup pendiente
-         llegue y actualice EN.vacated antes de decidir de verdad -- si de
-         verdad no se ha movido (trampa real), sigue fallando igual, solo
-         que ~70ms mas tarde en vez de al instante. */
-      var occ0=EN.occ[0], occ1=EN.occ[1], recheckTok=(EN.recheckTok=(EN.recheckTok||0)+1);
-      setTimeout(function(){
-        if(EN.phase!=='live' || EN.recheckTok!==recheckTok) return;
-        if(EN.vacated[occ0] && EN.vacated[occ1]){ extremoFinishRound(); return; }
-        if(TR.active){ trialClearMissTimer(); trialMiss(2,'Un dedo se ha quedado fijo'); return; }
-        EN.phase='done'; trialIndStop();
-        failRun('Un dedo se ha quedado fijo todo el rato. Los 2 dedos tienen que moverse: no vale dejar uno quieto y tocar solo con el otro.');
-      }, 70);
-      return;
-    }
-    if(allDone){ extremoFinishRound(); return; }
+    var relIdx=EN.occ.indexOf(EN.releasing);
+    if(relIdx>=0) EN.occ.splice(relIdx,1,i);
+    EN.target=-1; EN.releasing=null;
+    bankActiveTime(); S.roundsDone++;
     updateNormalCount(); trialIndUpdate();
-  }
-}
-/* Cierre de ronda (los 2 dedos ya aterrizaron de verdad en su objetivo, sin
-   trampa): puntua, avanza el contador y programa la siguiente ronda o el
-   final del ejercicio. Extraido de extremoPointerDown para poder llamarse
-   tanto al instante (caso normal) como desde el recheck diferido de
-   arriba (caso "parecia trampa pero el pointerup llego tarde"). */
-function extremoFinishRound(){
-  /* el resultado es UNO por ronda: lo que se tarda en llegar con el
-     segundo dedo al segundo cuadrado, no un tiempo por cada uno. El
-     limite de tiempo (fallo por tardanza) tampoco se anula hasta que
-     llega este segundo dedo. */
-  trialClearMissTimer();
-  S.times.push(Math.round(performance.now()-EN.tStart));
-  bankActiveTime(); S.roundsDone++;
-  updateNormalCount(); trialIndUpdate();
-  if(TR.active && S.roundsDone>=S.total){ EN.phase='done'; trialIndStop(); trialEndZone(); return; }
-  if(S.roundsDone>=S.total){ EN.phase='done'; bankActiveTime(); trialIndStop(); finish(); return; }
-  EN.occ=EN.to.slice();
-  if(S.s3==='pausa'){
-    EN.phase='pause';
-    var w=500+Math.random()*1500;
-    setTimeout(function(){ if(EN.phase==='pause') extremoNextTrial(); }, w);
-  } else {
-    extremoNextTrial();
+    if(TR.active && S.roundsDone>=S.total){ EN.phase='done'; trialIndStop(); trialEndZone(); return; }
+    if(S.roundsDone>=S.total){ EN.phase='done'; bankActiveTime(); trialIndStop(); finish(); return; }
+    if(S.s3==='pausa'){
+      EN.phase='pause';
+      var w=500+Math.random()*1500;
+      setTimeout(function(){ if(EN.phase==='pause') extremoNextTrial(); }, w);
+    } else {
+      extremoNextTrial();
+    }
   }
 }
 function extremoStartCountdown(){
@@ -1024,16 +1092,10 @@ function extremoStartCountdown(){
 }
 function extremoNextTrial(){
   EN.phase='live';
-  var free=[]; for(var i=0;i<9;i++){ if(EN.occ.indexOf(i)<0) free.push(i); }
-  var i1=Math.floor(Math.random()*free.length);
-  var to1=free.splice(i1,1)[0];
-  var i2=Math.floor(Math.random()*free.length);
-  var to2=free.splice(i2,1)[0];
-  EN.to=[to1,to2]; EN.landed=[false,false]; EN.vacated={};
-  var f1=$('epod'+EN.occ[0]); if(f1){ f1.classList.remove('lit'); f1.style.removeProperty('--pod-color'); }
-  var f2=$('epod'+EN.occ[1]); if(f2){ f2.classList.remove('lit'); f2.style.removeProperty('--pod-color'); }
-  var t1=$('epod'+to1); if(t1){ t1.classList.add('lit'); t1.style.setProperty('--pod-color','#e23b2e'); }
-  var t2=$('epod'+to2); if(t2){ t2.classList.add('lit'); t2.style.setProperty('--pod-color','#e23b2e'); }
+  var free=[]; for(var i=0;i<6;i++){ if(EN.occ.indexOf(i)<0) free.push(i); }
+  EN.target=free[Math.floor(Math.random()*free.length)];
+  EN.releasing=null;
+  var t=$('npod'+EN.target); if(t){ t.classList.add('lit'); t.style.setProperty('--pod-color','#e23b2e'); }
   EN.tStart=performance.now(); S.roundStart=EN.tStart;
   trialArmMissTimer(function(){ return EN.phase==='live'; });
 }
@@ -1043,29 +1105,28 @@ function extremoPointerUp(e){
     for(var k in EN.placePid){
       if(EN.placePid[k]===pid){
         EN.placePid[k]=null;
-        var p=$('epod'+k); if(p){ p.classList.remove('lit','pressed'); p.style.removeProperty('--pod-color'); }
+        var p=$('npod'+k); if(p){ p.classList.remove('lit','pressed'); p.style.removeProperty('--pod-color'); }
       }
     }
     return;
   }
+  if(EN.phase!=='live') return;
   var podIdx=EN.ptrPod[pid];
-  if(podIdx!=null){ var pp=$('epod'+podIdx); if(pp) pp.classList.remove('pressed'); }
+  if(podIdx==null) return;
+  if(EN.occ.indexOf(podIdx)<0) return; // ya no es uno de los 2 anclados actuales
+  delete EN.ptrPod[pid];
+  var p=$('npod'+podIdx); if(p) p.classList.remove('pressed');
   /* El fallo por soltar los 2 dedos a la vez se detecta de forma global
-     en touchGuardUp() (cuenta real de dedos en pantalla), no aqui: asi
-     se cubre todo el "live", no solo el instante antes del 1er acierto. */
-  /* Anti-trampa: registra que esta posicion VIEJA (una de las 2 que habia
-     que abandonar esta ronda) se ha liberado de verdad. Si al completarse
-     la ronda alguna de las 2 sigue sin liberarse, es que ese dedo nunca
-     se ha movido (trampa: un dedo fijo + el otro haciendo todo el trabajo). */
-  if(EN.phase==='live' && podIdx!=null && (podIdx===EN.occ[0] || podIdx===EN.occ[1])){
-    EN.vacated[podIdx]=true;
-  }
+     en touchGuardUp() (cuenta real de dedos en pantalla), no aqui. */
+  EN.releasing=podIdx;
+  EN.pods[podIdx].free=true;
+  var v=enRandomVel(); EN.pods[podIdx].vx=v.vx; EN.pods[podIdx].vy=v.vy;
 }
 function extremoCheckDrift(e){
   if(EN.phase!=='live') return;
   var podIdx=EN.ptrPod[e.pointerId];
   if(podIdx==null) return;
-  var pod=$('epod'+podIdx); if(!pod) return;
+  var pod=$('npod'+podIdx); if(!pod) return;
   var r=pod.getBoundingClientRect();
   if(e.clientX<r.left || e.clientX>r.right || e.clientY<r.top || e.clientY>r.bottom){
     delete EN.ptrPod[e.pointerId];
@@ -1075,7 +1136,7 @@ function extremoCheckDrift(e){
   }
 }
 function extremoInit(){
-  var a=$('extremoArena'); if(a) a.addEventListener('pointerdown', extremoPointerDown);
+  var a=$('normalArena'); if(a) a.addEventListener('pointerdown', extremoPointerDown);
   document.addEventListener('pointerup', extremoPointerUp);
   document.addEventListener('pointercancel', extremoPointerUp);
   document.addEventListener('pointermove', extremoCheckDrift);
@@ -1590,7 +1651,14 @@ function trialFixOccAfterMiss(){
   if(TR.mode==='normal'){
     if(N.to && N.to.length===2) N.occ=N.to.slice();
   } else if(TR.mode==='extremo'){
-    if(EN.to && EN.to.length===2) EN.occ=EN.to.slice();
+    /* Trata el fallo como si el objetivo movil se hubiera alcanzado de
+       verdad: se congela donde este ahora mismo y sustituye en occ al
+       gris que se habia soltado para ir a por el. */
+    if(EN.target>=0 && EN.releasing!=null){
+      if(EN.pods && EN.pods[EN.target]){ EN.pods[EN.target].free=false; EN.pods[EN.target].vx=0; EN.pods[EN.target].vy=0; }
+      var relIdx=EN.occ.indexOf(EN.releasing);
+      if(relIdx>=0) EN.occ.splice(relIdx,1,EN.target);
+    }
   } else {
     if(LM.to>=0 && LM.from>=0){
       var pinned=(LM.occ[0]===LM.from)?LM.occ[1]:LM.occ[0];
