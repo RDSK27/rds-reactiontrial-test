@@ -177,7 +177,7 @@ if('serviceWorker' in navigator){
   #game.en-free .trial-game-panel{ background:transparent; border:none; box-shadow:none; padding:0; width:100%; max-width:100%; }
   #game.en-free .trial-game-msg{ color:#333; }
   #game.en-free #normalArena{ display:block; position:relative; width:100%; height:min(62vh,520px); touch-action:none; }
-  #game.en-free #normalArena .pod{ position:absolute; width:var(--en-pod-size,84px); height:var(--en-pod-size,84px); margin:0; }
+  #game.en-free #normalArena .pod{ position:absolute; width:var(--en-pod-size,104px); height:var(--en-pod-size,104px); margin:0; }
 
 
   footer{
@@ -411,7 +411,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v51</div>
+    <div class="app-ver">v52</div>
     </div>
 
   </main>
@@ -903,14 +903,19 @@ function normalInit(){
    que se completa la colocacion. En cuanto los 2 dedos estan puestos, los
    4 sueltos empiezan a moverse solos sin parar, chocando entre si (y con
    los que esten anclados) y cambiando de trayectoria al chocar. Sale UN
-   objetivo rojo (uno de los que esta en movimiento). Para acertarlo: se
-   mantiene fijo un dedo en uno de los 2 grises, se levanta el OTRO (ese
-   gris pasa a moverse tambien) y se persigue al rojo con el dedo libre.
-   Al tocarlo, se queda fijo justo donde este en ese momento (pasa a ser
-   el nuevo gris), sale un nuevo rojo entre los que esten sueltos, y se
-   repite. */
-var EN_POD_SIZE=84, EN_POD_R=EN_POD_SIZE/2, EN_POD_SPEED=105; // px, px/s
-var EN={ phase:'idle', pods:null, occ:[4,5], target:-1, releasing:null,
+   objetivo rojo (uno de los que esta en movimiento) A LA VEZ que UNO de
+   los 2 grises que tengo pulsados se apaga (pasa a negro): ESE es el que
+   tengo que mover, el otro gris tiene que quedarse quieto. Corregido
+   2026-09-17 (2a vuelta, pedido expreso): sin esta designacion, la
+   trampa "dejo siempre el mismo dedo fijo y solo muevo el otro" era
+   trivial -- ahora lo decide el juego cada ronda, no el jugador, y
+   soltar el gris equivocado (el que debia quedarse quieto) es fallo
+   inmediato, igual que en Extremo/LM. Al tocar el rojo, se queda fijo
+   justo donde este en ese momento (pasa a ser el nuevo gris), sale un
+   nuevo rojo entre los que esten sueltos y una nueva designacion de cual
+   de los 2 grises hay que mover, y se repite. */
+var EN_POD_SIZE=104, EN_POD_R=EN_POD_SIZE/2, EN_POD_SPEED=105; // px, px/s -- pods mas grandes, pedido expreso (antes 84)
+var EN={ phase:'idle', pods:null, occ:[4,5], target:-1, toMove:-1, releasing:null,
          placePid:{'4':null,'5':null}, ptrPod:{}, tStart:0, raf:0, lastTs:0,
          arenaW:0, arenaH:0 };
 function enMeasureArena(){
@@ -942,7 +947,7 @@ function enSetupPods(){
     p.y=Math.max(p.r,Math.min(h-p.r,p.y));
     var v=enRandomVel(); p.vx=v.vx; p.vy=v.vy;
   }
-  EN.occ=[4,5]; EN.target=-1; EN.releasing=null;
+  EN.occ=[4,5]; EN.target=-1; EN.toMove=-1; EN.releasing=null;
 }
 function enRenderPod(i){
   var p=EN.pods && EN.pods[i], el=$('npod'+i);
@@ -1009,7 +1014,7 @@ function extremoGameReset(){
 function extremoReplace(){
   /* EN.occ ya se ha corregido (si hacia falta) antes de llamar aqui. Todo
      se queda quieto donde este mientras se vuelven a colocar los 2 dedos. */
-  EN.phase='placing'; EN.placePid={}; EN.ptrPod={}; EN.target=-1; EN.releasing=null;
+  EN.phase='placing'; EN.placePid={}; EN.ptrPod={}; EN.target=-1; EN.toMove=-1; EN.releasing=null;
   for(var i=0;i<6;i++){
     if(EN.pods && EN.pods[i]) EN.pods[i].free=false;
     var p=$('npod'+i); if(p){ p.classList.remove('lit','pressed'); p.style.removeProperty('--pod-color'); }
@@ -1052,10 +1057,12 @@ function extremoPointerDown(e){
     trialClearMissTimer();
     S.times.push(Math.round(performance.now()-EN.tStart));
     /* Aterriza en el objetivo movil: se queda fijo justo donde este ahora
-       mismo, sustituyendo en occ al gris que se solto para llegar hasta el. */
+       mismo, sustituyendo en occ al gris que se solto para llegar hasta el.
+       Pasa a ser gris de verdad (.lit), no solo "pressed" -- .pressed por
+       si solo no basta ahora que un gris puede estar en negro (ver abajo). */
     EN.pods[i].free=false; EN.pods[i].vx=0; EN.pods[i].vy=0;
     EN.ptrPod[e.pointerId]=i;
-    pod.classList.add('pressed'); pod.style.setProperty('--pod-color','#8a8a8a');
+    pod.classList.add('lit'); pod.style.setProperty('--pod-color','#8a8a8a');
     var relIdx=EN.occ.indexOf(EN.releasing);
     if(relIdx>=0) EN.occ.splice(relIdx,1,i);
     EN.target=-1; EN.releasing=null;
@@ -1095,6 +1102,15 @@ function extremoNextTrial(){
   var free=[]; for(var i=0;i<6;i++){ if(EN.occ.indexOf(i)<0) free.push(i); }
   EN.target=free[Math.floor(Math.random()*free.length)];
   EN.releasing=null;
+  /* Designa cual de los 2 grises hay que mover esta ronda -- lo decide el
+     juego, no el jugador (pedido expreso, 2a vuelta 2026-09-17: sin esto
+     era trivial hacer trampa dejando siempre el mismo dedo fijo). Ese pasa
+     a "negro" (pierde el gris, aspecto normal/apagado igual que los sueltos
+     en movimiento); el otro se queda o se pone gris. */
+  EN.toMove=EN.occ[Math.floor(Math.random()*EN.occ.length)];
+  var stay=(EN.occ[0]===EN.toMove)?EN.occ[1]:EN.occ[0];
+  var mv=$('npod'+EN.toMove); if(mv){ mv.classList.remove('lit','pressed'); mv.style.removeProperty('--pod-color'); }
+  var st=$('npod'+stay); if(st){ st.classList.add('lit'); st.style.setProperty('--pod-color','#8a8a8a'); }
   var t=$('npod'+EN.target); if(t){ t.classList.add('lit'); t.style.setProperty('--pod-color','#e23b2e'); }
   EN.tStart=performance.now(); S.roundStart=EN.tStart;
   trialArmMissTimer(function(){ return EN.phase==='live'; });
@@ -1114,6 +1130,16 @@ function extremoPointerUp(e){
   var podIdx=EN.ptrPod[pid];
   if(podIdx==null) return;
   if(EN.occ.indexOf(podIdx)<0) return; // ya no es uno de los 2 anclados actuales
+  if(podIdx!==EN.toMove){
+    /* Se ha soltado el gris que tenia que quedarse quieto -- el que hay
+       que mover es el que esta en negro (EN.toMove). Fallo inmediato,
+       mismo patron que "dedo fijo" en Extremo/LM (limitePointerUp). */
+    delete EN.ptrPod[pid];
+    if(TR.active){ trialClearMissTimer(); trialMiss(2,'Has soltado el cuadrado equivocado'); return; }
+    EN.phase='done'; trialIndStop();
+    failRun('Has soltado el cuadrado gris equivocado. El que tienes que mover es el que estaba en negro.');
+    return;
+  }
   delete EN.ptrPod[pid];
   var p=$('npod'+podIdx); if(p) p.classList.remove('pressed');
   /* El fallo por soltar los 2 dedos a la vez se detecta de forma global
