@@ -111,6 +111,12 @@ if('serviceWorker' in navigator){
   .segment button:last-child{border-right:0;}
   .segment button.sel{background:var(--rojo);color:#fff;text-shadow:none;}
   #seg2,#seg3{margin-top:0;}
+  .calibrar-btn{
+    display:block;margin:10px auto 0;height:36px;padding:0 24px;
+    background:#111;color:#fff;border:0;border-top:4px solid #b03020;
+    font-family:inherit;font-weight:900;letter-spacing:1px;text-transform:uppercase;
+    font-size:12px;cursor:pointer;text-shadow:0 1px 2px rgba(0,0,0,0.7);
+  }
 
   /* ---------- Acciones (mas pequenas y estrechas, como en la referencia) ---------- */
   .actions{display:flex;flex-direction:column;align-items:center;gap:6px;gap:clamp(4px,1svh,8px);margin-top:clamp(20px,4svh,40px);}
@@ -176,7 +182,7 @@ if('serviceWorker' in navigator){
      con left/top en px, en coordenadas LOCALES del propio #normalArena). */
   #game.en-free .trial-game-panel{ background:transparent; border:none; box-shadow:none; padding:0; width:100%; max-width:100%; }
   #game.en-free .trial-game-msg{ color:#333; }
-  #game.en-free #normalArena{ display:block; position:relative; width:100%; height:min(62vh,520px); touch-action:none; }
+  #game.en-free #normalArena{ display:block; position:relative; width:100%; height:min(var(--en-vh,62vh),var(--en-px,520px)); touch-action:none; }
   #game.en-free #normalArena .pod{ position:absolute; width:var(--en-pod-size,104px); height:var(--en-pod-size,104px); margin:0; }
 
 
@@ -360,6 +366,8 @@ if('serviceWorker' in navigator){
       <button data-v="pausa">Pausa</button>
     </div>
 
+    <button id="btn-calibrar" class="calibrar-btn" ontouchend="event.stopPropagation();" onclick="openCalibrar()">Calibrar</button>
+
     <div style="border:3px solid #b03020;border-radius:10px;background-color:#000000;padding:20px 12px 12px;display:flex;flex-direction:column;align-items:center;width:92%;min-height:250px;box-sizing:border-box;margin:auto auto 28px;">
       <div class="home-btn-row">
         <div class="start-wrap" id="btn-trial-wrap">
@@ -411,7 +419,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v52</div>
+    <div class="app-ver">v53</div>
     </div>
 
   </main>
@@ -522,6 +530,24 @@ if('serviceWorker' in navigator){
     <button class="game-ctrl-btn" onclick="goHome()">&#8592; Inicio</button>
     <button class="game-ctrl-btn" style="border-right:none;border-left:1px solid #333;" onclick="repeatGame()">&#8634; Repetir</button>
   </div>
+  </section>
+
+  <section id="calibrar" class="screen">
+    <div class="center-body">
+      <div class="fail-title" style="font-size:32px;">Calibraci&#243;n</div>
+      <div class="fail-msg" id="calMsg">Estira el pulgar y el &#237;ndice (u otros dos dedos) de la mano con la que vas a jugar todo lo que puedas, y ap&#243;yalos a la vez sobre el recuadro de abajo.</div>
+      <div id="calArena" style="width:100%;max-width:340px;height:38vh;min-height:220px;margin:6px auto;border:3px dashed #b03020;border-radius:14px;background:#151515;touch-action:none;-webkit-user-select:none;user-select:none;"></div>
+      <div id="calResult" style="display:none;">
+        <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#9A9A9A;font-weight:700;">Talla detectada</div>
+        <div id="calSizeLabel" style="font-size:44px;font-weight:900;color:var(--rojo);line-height:1;"></div>
+        <div id="calDistLabel" style="font-size:12px;color:#9A9A9A;margin-top:2px;"></div>
+      </div>
+    </div>
+    <div class="results-actions">
+      <button class="game-ctrl-btn" onclick="goHome()">&#8592; Inicio</button>
+      <button class="game-ctrl-btn" style="border-right:none;border-left:1px solid #333;" onclick="calRepeat()">&#8634; Repetir</button>
+      <button class="game-ctrl-btn" id="calAcceptBtn" style="border-right:none;border-left:1px solid #333;display:none;" onclick="calAccept()">&#10003; Guardar</button>
+    </div>
   </section>
 
   <section id="trialZoneResult" class="screen">
@@ -1851,7 +1877,96 @@ function touchGuardInit(){
   document.addEventListener('pointercancel', touchGuardUp, true);
 }
 
-seg('seg1'); seg('seg2'); seg('seg3'); trialInit(); normalInit(); extremoInit(); limiteInit(); touchGuardInit();
+/* ---------- Calibracion de envergadura (S/M/L) ----------
+   Mide con 2 dedos (estiramiento maximo tipo "pellizco" invertido) el
+   alcance real de la mano del jugador y ajusta el tamano/separacion de
+   los cuadrados en Normal/Extremo (grid) y el area de movimiento en
+   Limite (EN, pods sueltos). M = valores originales de siempre (si nunca
+   se calibra, el comportamiento no cambia). Umbrales en px provisionales:
+   se pueden afinar tras probar en un movil real. */
+var HAND_SIZES={
+  S:{pod:104, gap:16, enPod:82,  enVh:48, enPx:380},
+  M:{pod:130, gap:28, enPod:104, enVh:62, enPx:520},
+  L:{pod:150, gap:36, enPod:122, enVh:74, enPx:640}
+};
+var CAL_LS_KEY='rds_rtrial_handsize';
+function applyHandSize(){
+  var sz=localStorage.getItem(CAL_LS_KEY)||'M';
+  var p=HAND_SIZES[sz]||HAND_SIZES.M;
+  EN_POD_SIZE=p.enPod; EN_POD_R=p.enPod/2;
+  var na=$('normalArena');
+  if(na){
+    na.style.setProperty('--pod-size', p.pod+'px');
+    na.style.setProperty('--pod-gap', p.gap+'px');
+    na.style.setProperty('--en-pod-size', p.enPod+'px');
+    na.style.setProperty('--en-vh', p.enVh+'vh');
+    na.style.setProperty('--en-px', p.enPx+'px');
+  }
+}
+var CAL={p1:null,p2:null,maxDist:0,pendingSize:null};
+function calMsg(t){ var m=$('calMsg'); if(m) m.textContent=t; }
+function calArenaDist(a,b){ var dx=a.x-b.x, dy=a.y-b.y; return Math.sqrt(dx*dx+dy*dy); }
+function calReset(){
+  CAL.p1=null; CAL.p2=null; CAL.maxDist=0; CAL.pendingSize=null;
+  var r=$('calResult'); if(r) r.style.display='none';
+  var ab=$('calAcceptBtn'); if(ab) ab.style.display='none';
+  calMsg('Estira el pulgar y el índice (u otros dos dedos) de la mano con la que vas a jugar todo lo que puedas, y apóyalos a la vez sobre el recuadro de abajo.');
+}
+function calPointerDown(e){
+  if(CAL.pendingSize) return;
+  if(CAL.p1===null){ CAL.p1={id:e.pointerId,x:e.clientX,y:e.clientY}; }
+  else if(CAL.p2===null && e.pointerId!==CAL.p1.id){ CAL.p2={id:e.pointerId,x:e.clientX,y:e.clientY}; }
+  calUpdateDist();
+}
+function calPointerMove(e){
+  if(CAL.pendingSize) return;
+  if(CAL.p1 && e.pointerId===CAL.p1.id){ CAL.p1.x=e.clientX; CAL.p1.y=e.clientY; }
+  else if(CAL.p2 && e.pointerId===CAL.p2.id){ CAL.p2.x=e.clientX; CAL.p2.y=e.clientY; }
+  else return;
+  calUpdateDist();
+}
+function calUpdateDist(){
+  if(!CAL.p1 || !CAL.p2) return;
+  var d=calArenaDist(CAL.p1, CAL.p2);
+  if(d>CAL.maxDist) CAL.maxDist=d;
+  calMsg('Estirando... '+Math.round(CAL.maxDist)+' px (suelta cuando no puedas estirar más)');
+}
+function calPointerUp(e){
+  if(CAL.pendingSize) return;
+  var wasP1=CAL.p1 && e.pointerId===CAL.p1.id, wasP2=CAL.p2 && e.pointerId===CAL.p2.id;
+  if(!wasP1 && !wasP2) return;
+  if(CAL.p1 && CAL.p2){ calFinish(); return; }
+  if(wasP1) CAL.p1=null;
+  if(wasP2) CAL.p2=null;
+}
+function calFinish(){
+  if(CAL.maxDist<40){ calReset(); calMsg('No se detectó un estiramiento válido. Coloca los 2 dedos a la vez y estira. Inténtalo de nuevo.'); return; }
+  var size = CAL.maxDist<200 ? 'S' : (CAL.maxDist<320 ? 'M' : 'L');
+  CAL.pendingSize=size;
+  var r=$('calResult'), sl=$('calSizeLabel'), dl=$('calDistLabel'), ab=$('calAcceptBtn');
+  if(sl) sl.textContent=size;
+  if(dl) dl.textContent=Math.round(CAL.maxDist)+' px';
+  if(r) r.style.display='';
+  if(ab) ab.style.display='';
+  calMsg('Listo. Pulsa Guardar para aplicar esta talla, o Repetir para volver a medir.');
+}
+function calAccept(){
+  if(!CAL.pendingSize) return;
+  localStorage.setItem(CAL_LS_KEY, CAL.pendingSize);
+  applyHandSize();
+  goHome();
+}
+function calRepeat(){ calReset(); }
+function openCalibrar(){ show('calibrar'); calReset(); }
+function calibrarInit(){
+  var a=$('calArena'); if(!a) return;
+  a.addEventListener('pointerdown', calPointerDown);
+  a.addEventListener('pointermove', calPointerMove);
+  a.addEventListener('pointerup', calPointerUp);
+  a.addEventListener('pointercancel', calPointerUp);
+}
+
+seg('seg1'); seg('seg2'); seg('seg3'); trialInit(); normalInit(); extremoInit(); limiteInit(); touchGuardInit(); calibrarInit(); applyHandSize();
 segRank('seg1R'); segRank('seg2R'); segRank('seg3R');
 $('btnRank2').addEventListener('click', showRanking);
 $('btnGuardar').addEventListener('click', function(){
