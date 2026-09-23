@@ -439,7 +439,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v56</div>
+    <div class="app-ver">v57</div>
     </div>
 
   </main>
@@ -564,10 +564,10 @@ if('serviceWorker' in navigator){
         <div class="cal-square cal-square-anchor" id="calSqAnchor"></div>
         <div class="cal-mark" id="calMark" style="display:none;"></div>
       </div>
-      <div id="calResult" style="display:none;">
+      <div id="calResult">
         <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#9A9A9A;font-weight:700;">Talla detectada</div>
-        <div id="calSizeLabel" style="font-size:44px;font-weight:900;color:var(--rojo);line-height:1;"></div>
-        <div id="calDistLabel" style="font-size:12px;color:#9A9A9A;margin-top:2px;"></div>
+        <div id="calSizeLabel" style="font-size:44px;font-weight:900;color:var(--rojo);line-height:1;">?</div>
+        <div id="calDistLabel" style="font-size:12px;color:#9A9A9A;margin-top:2px;">--- px</div>
       </div>
     </div>
     <div class="results-actions">
@@ -1977,8 +1977,12 @@ function calLayoutSquares(){
   if(sL) sL.style.bottom=(CAL_ANCHOR_BOTTOM+CAL_REF.L)+'px';
 }
 function calReset(){
+  // #calResult NUNCA se oculta/muestra (solo se cambia su texto): ocultarlo
+  // cambiaba la altura del contenido centrado y desplazaba toda la regla de
+  // sitio -- "las cosas se mueven". El "?" / "--- px" es el estado de reposo.
   CAL.active={}; CAL.pendingSize=null; CAL.lastDist=0;
-  var r=$('calResult'); if(r) r.style.display='none';
+  var sl=$('calSizeLabel'); if(sl) sl.textContent='?';
+  var dl=$('calDistLabel'); if(dl) dl.textContent='--- px';
   var ab=$('calAcceptBtn'); if(ab) ab.style.display='none';
   var mk=$('calMark'); if(mk) mk.style.display='none';
   calMsg('Apoya el dedo índice sobre el cuadrado gris de abajo. Con el dedo corazón (el dedo del medio), toca en la regla el punto que te resulte más cómodo de alcanzar: quedará marcado en rojo. Ajusta lo que quieras y pulsa Aceptar cuando estés conforme.');
@@ -2014,10 +2018,9 @@ function calUpdateMark(){
   var size='M', bd=1e9;
   Object.keys(CAL_REF).forEach(function(k){ var d=Math.abs(bestD-CAL_REF[k]); if(d<bd){ bd=d; size=k; } });
   CAL.pendingSize=size; CAL.lastDist=bestD;
-  var sl=$('calSizeLabel'), dl=$('calDistLabel'), r=$('calResult'), ab=$('calAcceptBtn');
+  var sl=$('calSizeLabel'), dl=$('calDistLabel'), ab=$('calAcceptBtn');
   if(sl) sl.textContent=size;
   if(dl) dl.textContent=Math.round(bestD)+' px';
-  if(r) r.style.display='';
   if(ab) ab.style.display='';
   calMsg('Marca en '+size+'. Puedes seguir ajustando, o pulsar Aceptar para guardar.');
 }
