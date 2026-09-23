@@ -229,6 +229,18 @@ if('serviceWorker' in navigator){
   .fail-title{font-weight:800;font-size:46px;color:var(--rojo);text-transform:uppercase;line-height:.95;}
   .fail-msg{font-weight:600;font-size:16px;color:var(--negro);max-width:300px;}
 
+  /* Calibracion: regla vertical con marcas de cm + cuadrado ancla (gris) +
+     3 cuadrados de referencia S/M/L (negros) + marca del dedo libre (roja) */
+  .cal-arena{position:relative;width:100%;max-width:340px;height:60vh;min-height:460px;max-height:620px;margin:6px auto;border:3px dashed #b03020;border-radius:14px;background:#151515;touch-action:none;-webkit-user-select:none;user-select:none;overflow:hidden;}
+  .cal-ruler{position:absolute;left:8px;bottom:0;top:0;width:70px;pointer-events:none;}
+  .cal-tick{position:absolute;left:0;width:12px;height:2px;background:rgba(255,255,255,.35);}
+  .cal-tick-major{width:20px;height:2px;background:rgba(255,255,255,.7);}
+  .cal-tick-label{position:absolute;left:26px;font-size:10px;color:#9A9A9A;font-weight:700;transform:translateY(50%);}
+  .cal-square{position:absolute;left:68%;transform:translateX(-50%);width:46px;height:46px;border-radius:8px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;}
+  .cal-square-anchor{background:#8a8a8a;bottom:16px;box-shadow:0 3px 7px rgba(0,0,0,.5);}
+  .cal-square-ref{background:#111;color:#fff;border:2px solid #444;}
+  .cal-mark{position:absolute;left:68%;width:40px;height:40px;margin-left:-20px;margin-top:-20px;border-radius:50%;background:#e23b2e;box-shadow:0 0 0 5px rgba(226,59,46,.32);pointer-events:none;}
+
   /* Ranking */
   .rank-body{flex:1;min-height:0;overflow-y:auto;padding:10px 14px;background:#fff;}
   .rank-title{text-align:center;font-weight:800;font-size:30px;text-transform:uppercase;margin-bottom:2px;}
@@ -419,7 +431,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v53</div>
+    <div class="app-ver">v54</div>
     </div>
 
   </main>
@@ -535,8 +547,15 @@ if('serviceWorker' in navigator){
   <section id="calibrar" class="screen">
     <div class="center-body">
       <div class="fail-title" style="font-size:32px;">Calibraci&#243;n</div>
-      <div class="fail-msg" id="calMsg">Estira el pulgar y el &#237;ndice (u otros dos dedos) de la mano con la que vas a jugar todo lo que puedas, y ap&#243;yalos a la vez sobre el recuadro de abajo.</div>
-      <div id="calArena" style="width:100%;max-width:340px;height:38vh;min-height:220px;margin:6px auto;border:3px dashed #b03020;border-radius:14px;background:#151515;touch-action:none;-webkit-user-select:none;user-select:none;"></div>
+      <div class="fail-msg" id="calMsg">Apoya el dedo &#237;ndice sobre el cuadrado gris de abajo. Con el dedo coraz&#243;n (el dedo del medio), toca en la regla el punto que te resulte m&#225;s c&#243;modo de alcanzar: quedar&#225; marcado en rojo. Ajusta lo que quieras y pulsa Aceptar cuando est&#233;s conforme.</div>
+      <div id="calArena" class="cal-arena">
+        <div class="cal-ruler" id="calRuler"></div>
+        <div class="cal-square cal-square-ref" id="calSqL">L</div>
+        <div class="cal-square cal-square-ref" id="calSqM">M</div>
+        <div class="cal-square cal-square-ref" id="calSqS">S</div>
+        <div class="cal-square cal-square-anchor" id="calSqAnchor"></div>
+        <div class="cal-mark" id="calMark" style="display:none;"></div>
+      </div>
       <div id="calResult" style="display:none;">
         <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#9A9A9A;font-weight:700;">Talla detectada</div>
         <div id="calSizeLabel" style="font-size:44px;font-weight:900;color:var(--rojo);line-height:1;"></div>
@@ -546,7 +565,7 @@ if('serviceWorker' in navigator){
     <div class="results-actions">
       <button class="game-ctrl-btn" onclick="goHome()">&#8592; Inicio</button>
       <button class="game-ctrl-btn" style="border-right:none;border-left:1px solid #333;" onclick="calRepeat()">&#8634; Repetir</button>
-      <button class="game-ctrl-btn" id="calAcceptBtn" style="border-right:none;border-left:1px solid #333;display:none;" onclick="calAccept()">&#10003; Guardar</button>
+      <button class="game-ctrl-btn" id="calAcceptBtn" style="border-right:none;border-left:1px solid #333;display:none;" onclick="calAccept()">&#10003; Aceptar</button>
     </div>
   </section>
 
@@ -1903,52 +1922,97 @@ function applyHandSize(){
     na.style.setProperty('--en-px', p.enPx+'px');
   }
 }
-var CAL={p1:null,p2:null,maxDist:0,pendingSize:null};
+/* Mecanica nueva (2026-09-23, pedido expreso): en vez de medir el estiramiento
+   maximo entre 2 dedos, hay un cuadrado ANCLA gris fijo abajo (para el dedo
+   indice) y una "regla" vertical con marcas de cm. El dedo corazon toca donde
+   el jugador considere su mejor alcance comodo -- esa marca queda en rojo, en
+   vivo, mientras sigue tocando. 3 cuadrados negros de referencia (S/M/L) a lo
+   largo de la regla ayudan a situarse; la talla se decide por CERCANIA de la
+   marca roja al cuadrado de referencia mas proximo (no por el dedo ancla, que
+   solo cuenta como "hay 2 dedos puestos" -- se mide siempre contra la POSICION
+   FIJA del cuadrado gris, no contra donde haya caido el dedo indice, para no
+   exigir puntería perfecta en el ancla). CAL_REF conserva los umbrales viejos
+   200/320px como frontera exacta entre S/M y M/L (140,260,380 son equidistantes
+   de esos dos numeros) -- si se cambian, la frontera efectiva se mueve con ellos. */
+var CAL_PX_PER_CM=37.8;         // aprox. 1cm en px CSS -- solo para el dibujo de la regla
+var CAL_ANCHOR_BOTTOM=16;       // debe coincidir con el "bottom" de .cal-square-anchor
+var CAL_REF={S:140, M:260, L:380};   // distancia (px) del ancla a cada cuadrado de referencia
+var CAL={active:{}, pendingSize:null, lastDist:0};
 function calMsg(t){ var m=$('calMsg'); if(m) m.textContent=t; }
-function calArenaDist(a,b){ var dx=a.x-b.x, dy=a.y-b.y; return Math.sqrt(dx*dx+dy*dy); }
+function calAnchorCenter(){
+  var el=$('calSqAnchor'); if(!el) return null;
+  var r=el.getBoundingClientRect();
+  return {x:r.left+r.width/2, y:r.top+r.height/2};
+}
+function calBuildRuler(){
+  var ruler=$('calRuler'); if(!ruler) return;
+  ruler.innerHTML='';
+  var h=ruler.clientHeight||460;
+  var n=Math.floor(h/CAL_PX_PER_CM);
+  for(var i=0;i<=n;i++){
+    var y=i*CAL_PX_PER_CM, major=(i%5===0);
+    var tick=document.createElement('div');
+    tick.className='cal-tick'+(major?' cal-tick-major':'');
+    tick.style.bottom=y+'px';
+    ruler.appendChild(tick);
+    if(major){
+      var lbl=document.createElement('div');
+      lbl.className='cal-tick-label'; lbl.style.bottom=y+'px'; lbl.textContent=i;
+      ruler.appendChild(lbl);
+    }
+  }
+}
+function calLayoutSquares(){
+  var sS=$('calSqS'), sM=$('calSqM'), sL=$('calSqL');
+  if(sS) sS.style.bottom=(CAL_ANCHOR_BOTTOM+CAL_REF.S)+'px';
+  if(sM) sM.style.bottom=(CAL_ANCHOR_BOTTOM+CAL_REF.M)+'px';
+  if(sL) sL.style.bottom=(CAL_ANCHOR_BOTTOM+CAL_REF.L)+'px';
+}
 function calReset(){
-  CAL.p1=null; CAL.p2=null; CAL.maxDist=0; CAL.pendingSize=null;
+  CAL.active={}; CAL.pendingSize=null; CAL.lastDist=0;
   var r=$('calResult'); if(r) r.style.display='none';
   var ab=$('calAcceptBtn'); if(ab) ab.style.display='none';
-  calMsg('Estira el pulgar y el índice (u otros dos dedos) de la mano con la que vas a jugar todo lo que puedas, y apóyalos a la vez sobre el recuadro de abajo.');
+  var mk=$('calMark'); if(mk) mk.style.display='none';
+  calMsg('Apoya el dedo índice sobre el cuadrado gris de abajo. Con el dedo corazón (el dedo del medio), toca en la regla el punto que te resulte más cómodo de alcanzar: quedará marcado en rojo. Ajusta lo que quieras y pulsa Aceptar cuando estés conforme.');
 }
 function calPointerDown(e){
   if(CAL.pendingSize) return;
-  if(CAL.p1===null){ CAL.p1={id:e.pointerId,x:e.clientX,y:e.clientY}; }
-  else if(CAL.p2===null && e.pointerId!==CAL.p1.id){ CAL.p2={id:e.pointerId,x:e.clientX,y:e.clientY}; }
-  calUpdateDist();
+  CAL.active[e.pointerId]={x:e.clientX,y:e.clientY};
+  calUpdateMark();
 }
 function calPointerMove(e){
   if(CAL.pendingSize) return;
-  if(CAL.p1 && e.pointerId===CAL.p1.id){ CAL.p1.x=e.clientX; CAL.p1.y=e.clientY; }
-  else if(CAL.p2 && e.pointerId===CAL.p2.id){ CAL.p2.x=e.clientX; CAL.p2.y=e.clientY; }
-  else return;
-  calUpdateDist();
-}
-function calUpdateDist(){
-  if(!CAL.p1 || !CAL.p2) return;
-  var d=calArenaDist(CAL.p1, CAL.p2);
-  if(d>CAL.maxDist) CAL.maxDist=d;
-  calMsg('Estirando... '+Math.round(CAL.maxDist)+' px (suelta cuando no puedas estirar más)');
+  if(!(e.pointerId in CAL.active)) return;
+  CAL.active[e.pointerId]={x:e.clientX,y:e.clientY};
+  calUpdateMark();
 }
 function calPointerUp(e){
   if(CAL.pendingSize) return;
-  var wasP1=CAL.p1 && e.pointerId===CAL.p1.id, wasP2=CAL.p2 && e.pointerId===CAL.p2.id;
-  if(!wasP1 && !wasP2) return;
-  if(CAL.p1 && CAL.p2){ calFinish(); return; }
-  if(wasP1) CAL.p1=null;
-  if(wasP2) CAL.p2=null;
+  delete CAL.active[e.pointerId];   // no borra la marca ya puesta -- se queda visible
 }
-function calFinish(){
-  if(CAL.maxDist<40){ calReset(); calMsg('No se detectó un estiramiento válido. Coloca los 2 dedos a la vez y estira. Inténtalo de nuevo.'); return; }
-  var size = CAL.maxDist<200 ? 'S' : (CAL.maxDist<320 ? 'M' : 'L');
-  CAL.pendingSize=size;
-  var r=$('calResult'), sl=$('calSizeLabel'), dl=$('calDistLabel'), ab=$('calAcceptBtn');
+function calUpdateMark(){
+  var ids=Object.keys(CAL.active);
+  if(ids.length<2) return;   // el mensaje base ya pide los 2 dedos
+  var anchor=calAnchorCenter(); if(!anchor) return;
+  var best=null, bestD=-1;
+  ids.forEach(function(id){
+    var p=CAL.active[id], d=Math.hypot(p.x-anchor.x, p.y-anchor.y);
+    if(d>bestD){ bestD=d; best=p; }
+  });
+  if(bestD<40) return;   // demasiado cerca del ancla, todavia no cuenta como marca
+  var arena=$('calArena'); if(!arena) return;
+  var ar=arena.getBoundingClientRect();
+  var mk=$('calMark');
+  if(mk){ mk.style.left=(best.x-ar.left)+'px'; mk.style.top=(best.y-ar.top)+'px'; mk.style.display='block'; }
+  var size='M', bd=1e9;
+  Object.keys(CAL_REF).forEach(function(k){ var d=Math.abs(bestD-CAL_REF[k]); if(d<bd){ bd=d; size=k; } });
+  CAL.pendingSize=size; CAL.lastDist=bestD;
+  var sl=$('calSizeLabel'), dl=$('calDistLabel'), r=$('calResult'), ab=$('calAcceptBtn');
   if(sl) sl.textContent=size;
-  if(dl) dl.textContent=Math.round(CAL.maxDist)+' px';
+  if(dl) dl.textContent=Math.round(bestD)+' px';
   if(r) r.style.display='';
   if(ab) ab.style.display='';
-  calMsg('Listo. Pulsa Guardar para aplicar esta talla, o Repetir para volver a medir.');
+  calMsg('Marca en '+size+'. Puedes seguir ajustando, o pulsar Aceptar para guardar.');
 }
 function calAccept(){
   if(!CAL.pendingSize) return;
@@ -1957,7 +2021,7 @@ function calAccept(){
   goHome();
 }
 function calRepeat(){ calReset(); }
-function openCalibrar(){ show('calibrar'); calReset(); }
+function openCalibrar(){ show('calibrar'); calBuildRuler(); calLayoutSquares(); calReset(); }
 function calibrarInit(){
   var a=$('calArena'); if(!a) return;
   a.addEventListener('pointerdown', calPointerDown);
