@@ -118,12 +118,6 @@ if('serviceWorker' in navigator){
   .segment button:last-child{border-right:0;}
   .segment button.sel{background:var(--rojo);color:#fff;text-shadow:none;}
   #seg2,#seg3{margin-top:0;}
-  .calibrar-btn{
-    display:block;margin:10px auto 0;height:36px;padding:0 24px;
-    background:#111;color:#fff;border:0;border-top:4px solid #b03020;
-    font-family:inherit;font-weight:900;letter-spacing:1px;text-transform:uppercase;
-    font-size:12px;cursor:pointer;text-shadow:0 1px 2px rgba(0,0,0,0.7);
-  }
 
   /* ---------- Acciones (mas pequenas y estrechas, como en la referencia) ---------- */
   .actions{display:flex;flex-direction:column;align-items:center;gap:6px;gap:clamp(4px,1svh,8px);margin-top:clamp(20px,4svh,40px);}
@@ -156,8 +150,8 @@ if('serviceWorker' in navigator){
   .trial-start:active{ transform:translateY(1px); }
 
   /* ===== Arena modo Normal: 6 pods (4 objetivo arriba + 2 "casa" abajo) ===== */
-  .trial-game-panel{ width:fit-content; max-width:94%; margin:10px auto 0; padding:26px 26px 30px; box-sizing:border-box; border:3px solid #b03020; border-radius:16px; background:#151515; box-shadow:0 4px 12px rgba(0,0,0,.45); }
-  .trial-arena{ --pod-size:130px; --pod-gap:28px; display:grid; grid-template-columns:repeat(2,var(--pod-size)); grid-template-rows:repeat(3,var(--pod-size)); gap:var(--pod-gap); justify-content:center; align-content:center; touch-action:none; }
+  .trial-game-panel{ width:346px; max-width:94%; margin:10px auto 0; padding:26px 26px 30px; box-sizing:border-box; border:3px solid #b03020; border-radius:16px; background:#151515; box-shadow:0 4px 12px rgba(0,0,0,.45); }
+  .trial-arena{ --pod-size:130px; --pod-gap:28px; --arena-h:446px; width:100%; height:var(--arena-h); display:grid; grid-template-columns:repeat(2,var(--pod-size)); grid-template-rows:repeat(3,var(--pod-size)); gap:var(--pod-gap); justify-content:center; align-content:center; touch-action:none; }
   .trial-arena .pod{ position:relative; width:100%; aspect-ratio:1; border-radius:20px; box-sizing:border-box; padding:0; border:none; cursor:pointer; -webkit-tap-highlight-color:transparent; touch-action:none; background:conic-gradient(#ffffff,#9a9a9a,#e8e8e8,#5a5a5a,#ffffff,#8a8a8a,#dcdcdc,#666666,#ffffff); box-shadow:0 3px 7px rgba(0,0,0,.5); transition:box-shadow .06s ease, transform .06s ease; }
   .trial-arena .pod::before{ content:''; position:absolute; inset:4px; border-radius:14px; background:radial-gradient(circle at 35% 30%, #3a3a3a 0%, #1a1a1a 50%, #050505 100%); box-shadow:inset 0 2px 4px rgba(255,255,255,.22), inset 0 -3px 6px rgba(0,0,0,.6); }
   .trial-arena .pod.lit::before{ background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.30) 0%, rgba(255,255,255,0) 46%), radial-gradient(circle at 50% 82%, rgba(0,0,0,.40) 0%, rgba(0,0,0,0) 58%), var(--pod-color,#e23b2e); box-shadow:inset 0 2px 4px rgba(255,255,255,.28), inset 0 -3px 6px rgba(0,0,0,.5); }
@@ -172,25 +166,29 @@ if('serviceWorker' in navigator){
   /* Con la barra extra de zona/puntos, el modo Trial necesita recuperar
      algo de alto para que Inicio/Repetir no queden mas abajo que en el
      resto de pantallas: se recorta relleno, nunca el tamano de la cuadricula. */
-  #game.trial-mode .trial-game-panel{ margin-top:4px; padding:14px 20px 16px; }
+  #game.trial-mode .trial-game-panel{ margin-top:4px; padding:14px 20px 16px; width:334px; }
   #game.trial-mode .trial-game-msg{ margin-bottom:4px; }
   #game.trial-mode .stub-body{ padding:12px; }
 
+  /* Tamano de los cuadrados: M por defecto; "Reducir" los hace algo mas pequenos y, sobre todo, mas juntos.
+     El panel negro (ancho fijo) y la altura de la arena (--arena-h) NO cambian: la rejilla queda centrada dentro. */
+  #game.size-reduced .trial-arena{ --pod-size:118px; --pod-gap:8px; --en-pod-size:92px; }
+  .size-btn{ flex:none; height:30px; margin-bottom:-8px; padding:0 24px; background:#111; color:#fff; border:0; border-top:4px solid #b03020; font-family:inherit; font-weight:900; letter-spacing:1px; text-transform:uppercase; font-size:12px; cursor:pointer; text-shadow:0 1px 2px rgba(0,0,0,0.7); }
+  .size-btn:disabled{ opacity:.35; cursor:default; }
   .trial-arena .pod:active{ transform:translateY(1px); }
   .trial-arena .pod.home{ grid-row:3; }
 
-  /* ===== Arena modo Limite (EN): los mismos 6 pods de Normal/Extremo, pero
-     sueltos por la pantalla en movimiento libre en vez de en rejilla fija
-     -- reescrito de cero 2026-09-17, pedido expreso. Sin fondo negro (a
-     diferencia del resto de modos, que sí lo llevan en .trial-game-panel):
-     el campo de juego tiene que verse "abierto", no una caja. El texto del
-     mensaje (pensado para el panel oscuro) pasa a oscuro sobre el fondo
-     claro de #game. Los 6 pods dejan de posicionarse por grid (JS los mueve
-     con left/top en px, en coordenadas LOCALES del propio #normalArena). */
-  #game.en-free .trial-game-panel{ background:transparent; border:none; box-shadow:none; padding:0; width:100%; max-width:100%; }
-  #game.en-free .trial-game-msg{ color:#333; }
-  #game.en-free #normalArena{ display:block; position:relative; width:100%; height:min(var(--en-vh,62vh),var(--en-px,520px)); touch-action:none; }
-  #game.en-free #normalArena .pod{ position:absolute; width:var(--en-pod-size,104px); height:var(--en-pod-size,104px); margin:0; }
+  /* ===== Modo Limite (EN): los mismos 6 pods de Normal/Extremo. Al empezar se
+     ve IGUAL que los demas modos (panel negro, borde rojo, rejilla); en cuanto
+     los 2 dedos estan colocados y los pods empiezan a moverse, JS pone la
+     clase en-free: el panel se diluye (solo se desvanece, su tamano no cambia)
+     y los pods pasan a position:absolute, moviendose libres por todo el
+     .stub-body (coordenadas LOCALES de #gameBody, no de #normalArena). El texto
+     del mensaje pasa a oscuro sobre el fondo blanco. */
+  #game.en-free .trial-game-panel{ background-color:transparent; border-color:transparent; box-shadow:none; transition:background-color .9s ease, border-color .9s ease, box-shadow .9s ease; }
+  #game.en-free .trial-game-msg{ color:#333; transition:color .9s ease; }
+  #game.en-free .stub-body{ touch-action:none; }
+  #game.en-free #normalArena .pod{ position:absolute; width:var(--en-pod-size,104px); height:var(--en-pod-size,104px); margin:0; transition:width .6s ease, height .6s ease, box-shadow .06s ease, transform .06s ease; }
 
 
   footer{
@@ -235,19 +233,6 @@ if('serviceWorker' in navigator){
   .res-card .k{font-weight:700;letter-spacing:1px;text-transform:uppercase;font-size:10px;color:#888;}
   .fail-title{font-weight:800;font-size:46px;color:var(--rojo);text-transform:uppercase;line-height:.95;}
   .fail-msg{font-weight:600;font-size:16px;color:var(--negro);max-width:300px;}
-
-  /* Calibracion: regla vertical con marcas de cm + cuadrado ancla (gris) +
-     3 cuadrados de referencia S/M/L (negros) + marca del dedo libre (roja) */
-  .cal-arena{position:relative;width:100%;max-width:340px;flex:0 0 auto;height:460px;margin:6px auto;border:3px dashed #b03020;border-radius:14px;background:#151515;touch-action:none;-webkit-user-select:none;user-select:none;overflow:hidden;}
-  .cal-ruler{position:absolute;left:8px;bottom:0;top:0;width:70px;pointer-events:none;}
-  .cal-tick{position:absolute;left:0;width:12px;height:2px;background:rgba(255,255,255,.35);}
-  .cal-tick-major{width:20px;height:2px;background:rgba(255,255,255,.7);}
-  .cal-tick-label{position:absolute;left:26px;font-size:10px;color:#9A9A9A;font-weight:700;transform:translateY(50%);}
-  .cal-square{position:absolute;left:68%;transform:translateX(-50%);width:46px;height:46px;border-radius:8px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;}
-  .cal-square-anchor{background:#8a8a8a;bottom:16px;box-shadow:0 3px 7px rgba(0,0,0,.5);}
-  .cal-square-ref{background:#111;color:#fff;border:2px solid #444;}
-  .cal-mark{position:absolute;left:68%;width:40px;height:40px;margin-left:-20px;margin-top:-20px;border-radius:50%;background:#e23b2e;box-shadow:0 0 0 5px rgba(226,59,46,.32);pointer-events:none;}
-  #calMsg{min-height:96px;font-size:14px;display:flex;align-items:center;}
 
   /* Ranking */
   .rank-body{flex:1;min-height:0;overflow-y:auto;padding:10px 14px;background:#fff;}
@@ -316,7 +301,7 @@ if('serviceWorker' in navigator){
   #transition-text { color:#fff; font-size:1.6rem; font-weight:900; font-family:Arial,sans-serif; letter-spacing:0.05em; text-align:center; text-transform:uppercase; border-top:4px solid #b03020; border-bottom:4px solid #b03020; padding:16px 30px; }
 
   /* ---- Stub de la ZONA DEL EJERCICIO (se reemplaza al desarrollar la app) ---- */
-  .stub-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;background:#fff;text-align:center;}
+  .stub-body{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;background:#fff;text-align:center;}
   .stub-note{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#9A9A9A;font-weight:700;max-width:260px;line-height:1.5;}
   .stub-btn{padding:16px 26px;background:var(--rojo);color:#fff;border:none;border-radius:6px;font-family:inherit;font-weight:900;letter-spacing:0.12em;text-transform:uppercase;font-size:0.8rem;cursor:pointer;}
   .stub-btn:active{transform:translateY(2px);}
@@ -386,8 +371,6 @@ if('serviceWorker' in navigator){
       <button data-v="pausa">Pausa</button>
     </div>
 
-    <button id="btn-calibrar" class="calibrar-btn" ontouchend="event.stopPropagation();" onclick="openCalibrar()">Calibrar</button>
-
     <div style="border:3px solid #b03020;border-radius:10px;background-color:#000000;padding:20px 12px 12px;display:flex;flex-direction:column;align-items:center;width:92%;min-height:250px;box-sizing:border-box;margin:auto auto 28px;">
       <div class="home-btn-row">
         <div class="start-wrap" id="btn-trial-wrap">
@@ -439,7 +422,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v57</div>
+    <div class="app-ver">v58</div>
     </div>
 
   </main>
@@ -481,7 +464,8 @@ if('serviceWorker' in navigator){
       <div><div class="k">Puntos Trial</div><div class="v" id="tzbTrialPts">0</div></div>
       <div><div class="k">Puntos zona</div><div class="v"><span class="v-zonapts" id="tzbZonaPts">0</span></div></div>
     </div>
-    <div class="stub-body">
+    <div class="stub-body" id="gameBody">
+      <button type="button" class="size-btn" id="sizeBtn" onclick="toggleSize()">Reducir</button>
       <div class="trial-game-panel">
         <div class="trial-game-msg" id="normalMsg"></div>
         <div class="trial-arena" id="normalArena">
@@ -550,31 +534,6 @@ if('serviceWorker' in navigator){
     <button class="game-ctrl-btn" onclick="goHome()">&#8592; Inicio</button>
     <button class="game-ctrl-btn" style="border-right:none;border-left:1px solid #333;" onclick="repeatGame()">&#8634; Repetir</button>
   </div>
-  </section>
-
-  <section id="calibrar" class="screen">
-    <div class="center-body">
-      <div class="fail-title" style="font-size:32px;">Calibraci&#243;n</div>
-      <div class="fail-msg" id="calMsg">Apoya el dedo &#237;ndice sobre el cuadrado gris de abajo. Con el dedo coraz&#243;n (el dedo del medio), toca en la regla el punto que te resulte m&#225;s c&#243;modo de alcanzar: quedar&#225; marcado en rojo. Ajusta lo que quieras y pulsa Aceptar cuando est&#233;s conforme.</div>
-      <div id="calArena" class="cal-arena">
-        <div class="cal-ruler" id="calRuler"></div>
-        <div class="cal-square cal-square-ref" id="calSqL">L</div>
-        <div class="cal-square cal-square-ref" id="calSqM">M</div>
-        <div class="cal-square cal-square-ref" id="calSqS">S</div>
-        <div class="cal-square cal-square-anchor" id="calSqAnchor"></div>
-        <div class="cal-mark" id="calMark" style="display:none;"></div>
-      </div>
-      <div id="calResult">
-        <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#9A9A9A;font-weight:700;">Talla detectada</div>
-        <div id="calSizeLabel" style="font-size:44px;font-weight:900;color:var(--rojo);line-height:1;">?</div>
-        <div id="calDistLabel" style="font-size:12px;color:#9A9A9A;margin-top:2px;">--- px</div>
-      </div>
-    </div>
-    <div class="results-actions">
-      <button class="game-ctrl-btn" onclick="goHome()">&#8592; Inicio</button>
-      <button class="game-ctrl-btn" style="border-right:none;border-left:1px solid #333;" onclick="calRepeat()">&#8634; Repetir</button>
-      <button class="game-ctrl-btn" id="calAcceptBtn" style="border-right:none;border-left:1px solid #333;display:none;" onclick="calAccept()">&#10003; Aceptar</button>
-    </div>
   </section>
 
   <section id="trialZoneResult" class="screen">
@@ -741,16 +700,12 @@ function runGame(){
   if(zb) zb.style.display=TR.active?'':'none';
   var gs=$('game'); if(gs) gs.classList.toggle('trial-mode', TR.active);
   if(na) na.style.display='';
-  if(gs) gs.classList.toggle('en-free', S.s1==='extremo'); // Limite (EN): sin fondo negro, pods sueltos
+  enLeaveFree(); // Limite (EN) solo pasa a .en-free al empezar a moverse (enGoFree)
   if(S.s1==='extremo'){
     N.phase='idle'; LM.phase='idle';
     extremoGameReset();
   } else {
     EN.phase='idle';
-    /* Limpia el left/top inline que deja el modo Limite -- si no, con
-       position:relative (el de la rejilla normal) esos valores seguirian
-       desplazando el pod de su sitio en el grid. */
-    for(var enI=0; enI<6; enI++){ var enP=$('npod'+enI); if(enP){ enP.style.removeProperty('left'); enP.style.removeProperty('top'); } }
     if(S.s1==='limite'){ N.phase='idle'; limiteGameReset(); }
     else if(S.s1==='normal'){ LM.phase='idle'; normalReset(); }
   }
@@ -970,41 +925,52 @@ function normalInit(){
 var EN_POD_SIZE=104, EN_POD_R=EN_POD_SIZE/2, EN_POD_SPEED=105; // px, px/s -- pods mas grandes, pedido expreso (antes 84)
 var EN={ phase:'idle', pods:null, occ:[4,5], target:-1, toMove:-1, releasing:null,
          placePid:{'4':null,'5':null}, ptrPod:{}, tStart:0, raf:0, lastTs:0,
-         arenaW:0, arenaH:0 };
-function enMeasureArena(){
-  var a=$('normalArena'); if(!a) return;
-  var r=a.getBoundingClientRect();
-  EN.arenaW=r.width||320; EN.arenaH=r.height||420;
-}
+         free:false, minX:0, maxX:0, minY:0, maxY:0 };
 function enRandomVel(){
   var ang=Math.random()*Math.PI*2;
   return { vx:Math.cos(ang)*EN_POD_SPEED, vy:Math.sin(ang)*EN_POD_SPEED };
 }
+/* Los pods NACEN en la rejilla normal (panel negro, mismo tamano y sitio que
+   en Normal/Extremo) y sus posiciones libres se toman de donde esten en
+   pantalla justo al empezar el movimiento (enGoFree), asi no hay salto. */
 function enSetupPods(){
-  enMeasureArena();
-  var w=EN.arenaW, h=EN.arenaH;
   EN.pods=[];
-  for(var i=0;i<6;i++) EN.pods.push({idx:i,x:0,y:0,vx:0,vy:0,r:EN_POD_R,free:false});
-  /* 2 "casa" abajo, fijos de partida (misma idea que la fila inferior de
-     Normal/Extremo, aqui en coordenadas libres en vez de grid). */
-  EN.pods[4].x=w*0.32; EN.pods[4].y=h-EN_POD_R-14;
-  EN.pods[5].x=w*0.68; EN.pods[5].y=h-EN_POD_R-14;
-  /* Los otros 4, dispersos por el resto de la pantalla (quietos de
-     entrada -- no arrancan a moverse hasta completar la colocacion). */
-  var spots=[[0.22,0.20],[0.78,0.20],[0.22,0.50],[0.78,0.50]];
-  for(var k=0;k<4;k++){
-    var p=EN.pods[k], sp=spots[k];
-    p.x=w*sp[0]+(Math.random()-0.5)*w*0.08;
-    p.y=h*sp[1]+(Math.random()-0.5)*h*0.06;
-    p.x=Math.max(p.r,Math.min(w-p.r,p.x));
-    p.y=Math.max(p.r,Math.min(h-p.r,p.y));
-    var v=enRandomVel(); p.vx=v.vx; p.vy=v.vy;
+  for(var i=0;i<6;i++){
+    var v=(i<4)?enRandomVel():{vx:0,vy:0};
+    EN.pods.push({idx:i,x:0,y:0,vx:v.vx,vy:v.vy,r:EN_POD_R,free:false});
   }
   EN.occ=[4,5]; EN.target=-1; EN.toMove=-1; EN.releasing=null;
 }
+/* Paso de rejilla a movimiento libre: se lee donde esta cada pod en pantalla,
+   se activa .en-free (el CSS diluye el panel negro y saca los pods del grid)
+   y se reescriben left/top locales de #gameBody para que no se muevan de
+   sitio. El area de movimiento es todo el .stub-body por debajo del mensaje. */
+function enGoFree(){
+  var sb=$('gameBody'), g=$('game'), msg=$('normalMsg');
+  if(!sb || !g || !EN.pods) return;
+  var sr=sb.getBoundingClientRect(), i, r, p, el;
+  for(i=0;i<6;i++){
+    el=$('npod'+i); if(!el) continue;
+    r=el.getBoundingClientRect(); p=EN.pods[i];
+    p.r=EN_POD_R; p.x=r.left+r.width/2-sr.left; p.y=r.top+r.height/2-sr.top;
+    el.style.width=r.width+'px'; el.style.height=r.height+'px';   // punto de partida de la transicion de tamano (sin esto arrancaria desde width:100%)
+  }
+  var mr=msg?msg.getBoundingClientRect():null;
+  EN.minX=6; EN.maxX=sr.width-6; EN.maxY=sr.height-6; EN.minY=mr?(mr.bottom-sr.top+4):6;
+  EN.free=true;
+  g.classList.add('en-free');
+  enRenderAll();
+  void sb.offsetWidth;   // fija el estado inicial antes de animar hacia el tamano de Limite
+  for(i=0;i<6;i++){ el=$('npod'+i); if(el){ el.style.width=EN_POD_SIZE+'px'; el.style.height=EN_POD_SIZE+'px'; } }
+}
+function enLeaveFree(){
+  EN.free=false;
+  var g=$('game'); if(g) g.classList.remove('en-free');
+  for(var i=0;i<6;i++){ var p=$('npod'+i); if(p){ p.style.removeProperty('left'); p.style.removeProperty('top'); p.style.removeProperty('width'); p.style.removeProperty('height'); } }
+}
 function enRenderPod(i){
   var p=EN.pods && EN.pods[i], el=$('npod'+i);
-  if(!p || !el) return;
+  if(!EN.free || !p || !el) return;
   el.style.left=(p.x-p.r)+'px'; el.style.top=(p.y-p.r)+'px';
 }
 function enRenderAll(){ for(var i=0;i<6;i++) enRenderPod(i); }
@@ -1013,12 +979,12 @@ function enRenderAll(){ for(var i=0;i<6;i++) enRenderPod(i); }
    que actuan como obstaculo fijo -- cambiando de trayectoria (rebote
    elastico simple, mismo patron que resolveBallCollisions de reactiontenis). */
 function enStep(dt){
-  var w=EN.arenaW, h=EN.arenaH, pods=EN.pods, i, p;
+  var x0=EN.minX, x1=EN.maxX, y0=EN.minY, y1=EN.maxY, pods=EN.pods, i, p;
   for(i=0;i<6;i++){
     p=pods[i]; if(!p.free) continue;
     p.x+=p.vx*dt; p.y+=p.vy*dt;
-    if(p.x-p.r<0){ p.x=p.r; p.vx=Math.abs(p.vx); } else if(p.x+p.r>w){ p.x=w-p.r; p.vx=-Math.abs(p.vx); }
-    if(p.y-p.r<0){ p.y=p.r; p.vy=Math.abs(p.vy); } else if(p.y+p.r>h){ p.y=h-p.r; p.vy=-Math.abs(p.vy); }
+    if(p.x-p.r<x0){ p.x=x0+p.r; p.vx=Math.abs(p.vx); } else if(p.x+p.r>x1){ p.x=x1-p.r; p.vx=-Math.abs(p.vx); }
+    if(p.y-p.r<y0){ p.y=y0+p.r; p.vy=Math.abs(p.vy); } else if(p.y+p.r>y1){ p.y=y1-p.r; p.vy=-Math.abs(p.vy); }
   }
   for(var a=0;a<6;a++){
     for(var b=a+1;b<6;b++){
@@ -1052,6 +1018,7 @@ function enLoop(ts){
 function enStartLoop(){ if(EN.raf) return; EN.lastTs=0; EN.raf=requestAnimationFrame(enLoop); }
 function extremoGameReset(){
   EN.phase='placing';
+  enLeaveFree();
   enSetupPods();
   EN.placePid={'4':null,'5':null}; EN.ptrPod={};
   S.total=parseInt(S.s2,10)||15; S.times=[]; S.roundsDone=0; S.activeAccum=0; S.roundStart=null;
@@ -1059,7 +1026,6 @@ function extremoGameReset(){
   trialIndStop();
   $('indAvg').textContent='—'; $('indLast').textContent='—'; $('indTotal').textContent='0:00.0';
   for(var i=0;i<6;i++){ var p=$('npod'+i); if(p){ p.classList.remove('lit','pressed'); p.style.removeProperty('--pod-color'); } }
-  enRenderAll();
   EN.occ.forEach(function(idx){ var p=$('npod'+idx); if(p){ p.classList.add('lit'); p.style.setProperty('--pod-color','#8a8a8a'); } });
   setPlacementMsg('Coloca 2 dedos en los cuadrados de abajo');
   enStartLoop();
@@ -1079,6 +1045,7 @@ function extremoReplace(){
   setPlacementMsg('Coloca 2 dedos en los cuadrados de abajo');
 }
 function extremoPointerDown(e){
+  if(e.target.closest('#sizeBtn')) return;
   var pod=e.target.closest('.pod');
   if(EN.phase==='placing'){
     if(ANC.pid===null){ return; }
@@ -1096,6 +1063,7 @@ function extremoPointerDown(e){
       /* A partir de aqui los cuadrados sueltos empiezan a moverse de
          verdad -- pedido expreso: "una vez coloco los dedos abajo
          comienzan a moverse libremente". */
+      enGoFree();
       for(var j=0;j<6;j++){ if(EN.occ.indexOf(j)<0) EN.pods[j].free=true; }
       extremoStartCountdown();
     }
@@ -1215,7 +1183,7 @@ function extremoCheckDrift(e){
   }
 }
 function extremoInit(){
-  var a=$('normalArena'); if(a) a.addEventListener('pointerdown', extremoPointerDown);
+  var a=$('gameBody'); if(a) a.addEventListener('pointerdown', extremoPointerDown); // todo el area de juego, no solo la rejilla: los pods se mueven fuera de ella
   document.addEventListener('pointerup', extremoPointerUp);
   document.addEventListener('pointercancel', extremoPointerUp);
   document.addEventListener('pointermove', extremoCheckDrift);
@@ -1904,143 +1872,35 @@ function touchGuardInit(){
   document.addEventListener('pointercancel', touchGuardUp, true);
 }
 
-/* ---------- Calibracion de envergadura (S/M/L) ----------
-   Mide con 2 dedos (estiramiento maximo tipo "pellizco" invertido) el
-   alcance real de la mano del jugador y ajusta el tamano/separacion de
-   los cuadrados en Normal/Extremo (grid) y el area de movimiento en
-   Limite (EN, pods sueltos). M = valores originales de siempre (si nunca
-   se calibra, el comportamiento no cambia). Umbrales en px provisionales:
-   se pueden afinar tras probar en un movil real. */
-var HAND_SIZES={
-  S:{pod:104, gap:16, enPod:82,  enVh:48, enPx:380},
-  M:{pod:130, gap:28, enPod:104, enVh:62, enPx:520},
-  L:{pod:150, gap:36, enPod:122, enVh:74, enPx:640}
-};
-var CAL_LS_KEY='rds_rtrial_handsize';
-function applyHandSize(){
-  var sz=localStorage.getItem(CAL_LS_KEY)||'M';
-  var p=HAND_SIZES[sz]||HAND_SIZES.M;
-  EN_POD_SIZE=p.enPod; EN_POD_R=p.enPod/2;
-  var na=$('normalArena');
-  if(na){
-    na.style.setProperty('--pod-size', p.pod+'px');
-    na.style.setProperty('--pod-gap', p.gap+'px');
-    na.style.setProperty('--en-pod-size', p.enPod+'px');
-    na.style.setProperty('--en-vh', p.enVh+'vh');
-    na.style.setProperty('--en-px', p.enPx+'px');
-  }
+/* ---------- Tamano de los cuadrados: M (por defecto) / Reducido ----------
+   "Reducir" hace los cuadrados algo mas pequenos y, sobre todo, los junta
+   mas (CSS: #game.size-reduced). El panel negro no cambia. Solo se puede
+   cambiar mientras se colocan los dedos, nunca en pleno ejercicio. La
+   eleccion se recuerda (localStorage) entre sesiones. */
+var SIZE_LS_KEY='rds_rtrial_reduced';
+function applySize(reduced){
+  var g=$('game'); if(g) g.classList.toggle('size-reduced', reduced);
+  var b=$('sizeBtn'); if(b) b.textContent=reduced?'Ampliar':'Reducir';
+  EN_POD_SIZE=reduced?92:104; EN_POD_R=EN_POD_SIZE/2;   // Limite: tamano de los pods en movimiento libre
 }
-/* Mecanica nueva (2026-09-23, pedido expreso): en vez de medir el estiramiento
-   maximo entre 2 dedos, hay un cuadrado ANCLA gris fijo abajo (para el dedo
-   indice) y una "regla" vertical con marcas de cm. El dedo corazon toca donde
-   el jugador considere su mejor alcance comodo -- esa marca queda en rojo, en
-   vivo, mientras sigue tocando. 3 cuadrados negros de referencia (S/M/L) a lo
-   largo de la regla ayudan a situarse; la talla se decide por CERCANIA de la
-   marca roja al cuadrado de referencia mas proximo (no por el dedo ancla, que
-   solo cuenta como "hay 2 dedos puestos" -- se mide siempre contra la POSICION
-   FIJA del cuadrado gris, no contra donde haya caido el dedo indice, para no
-   exigir puntería perfecta en el ancla). CAL_REF conserva los umbrales viejos
-   200/320px como frontera exacta entre S/M y M/L (140,260,380 son equidistantes
-   de esos dos numeros) -- si se cambian, la frontera efectiva se mueve con ellos. */
-var CAL_PX_PER_CM=37.8;         // aprox. 1cm en px CSS -- solo para el dibujo de la regla
-var CAL_ANCHOR_BOTTOM=16;       // debe coincidir con el "bottom" de .cal-square-anchor
-var CAL_REF={S:140, M:260, L:380};   // distancia (px) del ancla a cada cuadrado de referencia
-var CAL={active:{}, pendingSize:null, lastDist:0};
-function calMsg(t){ var m=$('calMsg'); if(m) m.textContent=t; }
-function calAnchorCenter(){
-  var el=$('calSqAnchor'); if(!el) return null;
-  var r=el.getBoundingClientRect();
-  return {x:r.left+r.width/2, y:r.top+r.height/2};
+function sizeBtnAllowed(){
+  if(S.s1==='extremo') return EN.phase==='placing' && !EN.free;   // Limite (EN)
+  if(S.s1==='limite') return LM.phase==='placing';               // Extremo (LM)
+  return N.phase==='placing';                                          // Normal
 }
-function calBuildRuler(){
-  var ruler=$('calRuler'); if(!ruler) return;
-  ruler.innerHTML='';
-  var h=ruler.clientHeight||460;
-  var n=Math.floor(h/CAL_PX_PER_CM);
-  for(var i=0;i<=n;i++){
-    var y=i*CAL_PX_PER_CM, major=(i%5===0);
-    var tick=document.createElement('div');
-    tick.className='cal-tick'+(major?' cal-tick-major':'');
-    tick.style.bottom=y+'px';
-    ruler.appendChild(tick);
-    if(major){
-      var lbl=document.createElement('div');
-      lbl.className='cal-tick-label'; lbl.style.bottom=y+'px'; lbl.textContent=i;
-      ruler.appendChild(lbl);
-    }
-  }
+function toggleSize(){
+  if(!sizeBtnAllowed()) return;
+  var g=$('game'), red=!(g && g.classList.contains('size-reduced'));
+  applySize(red);
+  try{ localStorage.setItem(SIZE_LS_KEY, red?'1':'0'); }catch(e){}
 }
-function calLayoutSquares(){
-  var sS=$('calSqS'), sM=$('calSqM'), sL=$('calSqL');
-  if(sS) sS.style.bottom=(CAL_ANCHOR_BOTTOM+CAL_REF.S)+'px';
-  if(sM) sM.style.bottom=(CAL_ANCHOR_BOTTOM+CAL_REF.M)+'px';
-  if(sL) sL.style.bottom=(CAL_ANCHOR_BOTTOM+CAL_REF.L)+'px';
-}
-function calReset(){
-  // #calResult NUNCA se oculta/muestra (solo se cambia su texto): ocultarlo
-  // cambiaba la altura del contenido centrado y desplazaba toda la regla de
-  // sitio -- "las cosas se mueven". El "?" / "--- px" es el estado de reposo.
-  CAL.active={}; CAL.pendingSize=null; CAL.lastDist=0;
-  var sl=$('calSizeLabel'); if(sl) sl.textContent='?';
-  var dl=$('calDistLabel'); if(dl) dl.textContent='--- px';
-  var ab=$('calAcceptBtn'); if(ab) ab.style.display='none';
-  var mk=$('calMark'); if(mk) mk.style.display='none';
-  calMsg('Apoya el dedo índice sobre el cuadrado gris de abajo. Con el dedo corazón (el dedo del medio), toca en la regla el punto que te resulte más cómodo de alcanzar: quedará marcado en rojo. Ajusta lo que quieras y pulsa Aceptar cuando estés conforme.');
-}
-function calPointerDown(e){
-  // sin guardia de "ya hay talla pendiente": se puede reajustar la marca
-  // tantas veces como se quiera, solo Aceptar la deja fija de verdad.
-  CAL.active[e.pointerId]={x:e.clientX,y:e.clientY};
-  calUpdateMark();
-}
-function calPointerMove(e){
-  if(!(e.pointerId in CAL.active)) return;
-  CAL.active[e.pointerId]={x:e.clientX,y:e.clientY};
-  calUpdateMark();
-}
-function calPointerUp(e){
-  delete CAL.active[e.pointerId];   // no borra la marca ya puesta -- se queda visible
-}
-function calUpdateMark(){
-  var ids=Object.keys(CAL.active);
-  if(ids.length<2) return;   // el mensaje base ya pide los 2 dedos
-  var anchor=calAnchorCenter(); if(!anchor) return;
-  var best=null, bestD=-1;
-  ids.forEach(function(id){
-    var p=CAL.active[id], d=Math.hypot(p.x-anchor.x, p.y-anchor.y);
-    if(d>bestD){ bestD=d; best=p; }
-  });
-  if(bestD<40) return;   // demasiado cerca del ancla, todavia no cuenta como marca
-  var arena=$('calArena'); if(!arena) return;
-  var ar=arena.getBoundingClientRect();
-  var mk=$('calMark');
-  if(mk){ mk.style.left=(best.x-ar.left)+'px'; mk.style.top=(best.y-ar.top)+'px'; mk.style.display='block'; }
-  var size='M', bd=1e9;
-  Object.keys(CAL_REF).forEach(function(k){ var d=Math.abs(bestD-CAL_REF[k]); if(d<bd){ bd=d; size=k; } });
-  CAL.pendingSize=size; CAL.lastDist=bestD;
-  var sl=$('calSizeLabel'), dl=$('calDistLabel'), ab=$('calAcceptBtn');
-  if(sl) sl.textContent=size;
-  if(dl) dl.textContent=Math.round(bestD)+' px';
-  if(ab) ab.style.display='';
-  calMsg('Marca en '+size+'. Puedes seguir ajustando, o pulsar Aceptar para guardar.');
-}
-function calAccept(){
-  if(!CAL.pendingSize) return;
-  localStorage.setItem(CAL_LS_KEY, CAL.pendingSize);
-  applyHandSize();
-  goHome();
-}
-function calRepeat(){ calReset(); }
-function openCalibrar(){ show('calibrar'); calBuildRuler(); calLayoutSquares(); calReset(); }
-function calibrarInit(){
-  var a=$('calArena'); if(!a) return;
-  a.addEventListener('pointerdown', calPointerDown);
-  a.addEventListener('pointermove', calPointerMove);
-  a.addEventListener('pointerup', calPointerUp);
-  a.addEventListener('pointercancel', calPointerUp);
+function sizeInit(){
+  var red=false; try{ red=localStorage.getItem(SIZE_LS_KEY)==='1'; }catch(e){}
+  applySize(red);
+  setInterval(function(){ var b=$('sizeBtn'); if(b) b.disabled=!sizeBtnAllowed(); }, 150);
 }
 
-seg('seg1'); seg('seg2'); seg('seg3'); trialInit(); normalInit(); extremoInit(); limiteInit(); touchGuardInit(); calibrarInit(); applyHandSize();
+seg('seg1'); seg('seg2'); seg('seg3'); trialInit(); normalInit(); extremoInit(); limiteInit(); touchGuardInit(); sizeInit();
 segRank('seg1R'); segRank('seg2R'); segRank('seg3R');
 $('btnRank2').addEventListener('click', showRanking);
 $('btnGuardar').addEventListener('click', function(){
