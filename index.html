@@ -172,7 +172,7 @@ if('serviceWorker' in navigator){
 
   /* Tamano de los cuadrados: M por defecto; "Reducir" los hace algo mas pequenos y, sobre todo, mas juntos.
      El panel negro (ancho fijo) y la altura de la arena (--arena-h) NO cambian: la rejilla queda centrada dentro. */
-  #game.size-reduced .trial-arena{ --pod-size:118px; --pod-gap:8px; --en-pod-size:92px; }
+  #game.size-reduced .trial-arena{ --pod-size:118px; --pod-gap:8px; }
   .size-btn{ flex:none; height:30px; margin-bottom:-8px; padding:0 24px; background:#111; color:#fff; border:0; border-top:4px solid #b03020; font-family:inherit; font-weight:900; letter-spacing:1px; text-transform:uppercase; font-size:12px; cursor:pointer; text-shadow:0 1px 2px rgba(0,0,0,0.7); }
   .size-btn:disabled{ opacity:.35; cursor:default; }
   .trial-arena .pod:active{ transform:translateY(1px); }
@@ -188,7 +188,7 @@ if('serviceWorker' in navigator){
   #game.en-free .trial-game-panel{ background-color:transparent; border-color:transparent; box-shadow:none; transition:background-color .9s ease, border-color .9s ease, box-shadow .9s ease; }
   #game.en-free .trial-game-msg{ color:#333; transition:color .9s ease; }
   #game.en-free .stub-body{ touch-action:none; }
-  #game.en-free #normalArena .pod{ position:absolute; width:var(--en-pod-size,104px); height:var(--en-pod-size,104px); margin:0; transition:width .6s ease, height .6s ease, box-shadow .06s ease, transform .06s ease; }
+  #game.en-free #normalArena .pod{ position:absolute; width:var(--pod-size,130px); height:var(--pod-size,130px); margin:0; }
 
 
   footer{
@@ -422,7 +422,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v58</div>
+    <div class="app-ver">v59</div>
     </div>
 
   </main>
@@ -922,7 +922,7 @@ function normalInit(){
    justo donde este en ese momento (pasa a ser el nuevo gris), sale un
    nuevo rojo entre los que esten sueltos y una nueva designacion de cual
    de los 2 grises hay que mover, y se repite. */
-var EN_POD_SIZE=104, EN_POD_R=EN_POD_SIZE/2, EN_POD_SPEED=105; // px, px/s -- pods mas grandes, pedido expreso (antes 84)
+var EN_POD_SIZE=130, EN_POD_R=EN_POD_SIZE/2, EN_POD_SPEED=105; // px, px/s -- pods mas grandes, pedido expreso (antes 84)
 var EN={ phase:'idle', pods:null, occ:[4,5], target:-1, toMove:-1, releasing:null,
          placePid:{'4':null,'5':null}, ptrPod:{}, tStart:0, raf:0, lastTs:0,
          free:false, minX:0, maxX:0, minY:0, maxY:0 };
@@ -953,20 +953,17 @@ function enGoFree(){
     el=$('npod'+i); if(!el) continue;
     r=el.getBoundingClientRect(); p=EN.pods[i];
     p.r=EN_POD_R; p.x=r.left+r.width/2-sr.left; p.y=r.top+r.height/2-sr.top;
-    el.style.width=r.width+'px'; el.style.height=r.height+'px';   // punto de partida de la transicion de tamano (sin esto arrancaria desde width:100%)
   }
   var mr=msg?msg.getBoundingClientRect():null;
   EN.minX=6; EN.maxX=sr.width-6; EN.maxY=sr.height-6; EN.minY=mr?(mr.bottom-sr.top+4):6;
   EN.free=true;
   g.classList.add('en-free');
   enRenderAll();
-  void sb.offsetWidth;   // fija el estado inicial antes de animar hacia el tamano de Limite
-  for(i=0;i<6;i++){ el=$('npod'+i); if(el){ el.style.width=EN_POD_SIZE+'px'; el.style.height=EN_POD_SIZE+'px'; } }
 }
 function enLeaveFree(){
   EN.free=false;
   var g=$('game'); if(g) g.classList.remove('en-free');
-  for(var i=0;i<6;i++){ var p=$('npod'+i); if(p){ p.style.removeProperty('left'); p.style.removeProperty('top'); p.style.removeProperty('width'); p.style.removeProperty('height'); } }
+  for(var i=0;i<6;i++){ var p=$('npod'+i); if(p){ p.style.removeProperty('left'); p.style.removeProperty('top'); } }
 }
 function enRenderPod(i){
   var p=EN.pods && EN.pods[i], el=$('npod'+i);
@@ -1881,7 +1878,7 @@ var SIZE_LS_KEY='rds_rtrial_reduced';
 function applySize(reduced){
   var g=$('game'); if(g) g.classList.toggle('size-reduced', reduced);
   var b=$('sizeBtn'); if(b) b.textContent=reduced?'Ampliar':'Reducir';
-  EN_POD_SIZE=reduced?92:104; EN_POD_R=EN_POD_SIZE/2;   // Limite: tamano de los pods en movimiento libre
+  EN_POD_SIZE=reduced?118:130; EN_POD_R=EN_POD_SIZE/2;   // Limite: los pods mantienen el tamano de la rejilla al moverse (= --pod-size)
 }
 function sizeBtnAllowed(){
   if(S.s1==='extremo') return EN.phase==='placing' && !EN.free;   // Limite (EN)
