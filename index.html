@@ -422,7 +422,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v60</div>
+    <div class="app-ver">v61</div>
     </div>
 
   </main>
@@ -1826,8 +1826,11 @@ function showTrialFinalResults(){
 /* ---------- Guardian anti-trampa: cuenta dedos reales en pantalla ---------- */
 /* No evita usar 2 manos o dedos distintos a indice/anular (eso no se puede
    detectar), pero si evita anadir un dedo de mas para hacer trampa: Normal
-   permite 1 o 2 a la vez (3 = fin del ejercicio); Extremo (LM) permite
-   hasta 3 (4 = fin del ejercicio); Limite (EN) permite ancla + 2 (el 4o dedo, contando el ancla, es fallo). */
+   permite 1 o 2 a la vez (3 = fin del ejercicio); Extremo (LM) y Limite (EN)
+   permiten ancla + 2 (el 4o dedo, contando el ancla, es fallo -- mismo fix
+   en los dos modos, 2026-09-28: con ancla + los 2 grises pulsados, liberar
+   un 3er dedo de la MISMA mano del ancla dejaba ir a por los objetivos sin
+   mover nunca los grises reales). */
 var TOUCHES={};
 function touchCount(){ return Object.keys(TOUCHES).length; }
 function touchGuardDown(e){
@@ -1845,10 +1848,10 @@ function touchGuardDown(e){
     if(TR.active){ trialClearMissTimer(); trialMiss(2,'Has pisado fuera'); return; }
     EN.phase='done'; trialIndStop();
     failRun('Se han detectado 4 dedos en pantalla (contando el ancla). Solo puede haber 3 como máximo.');
-  } else if(LM.phase!=='idle' && LM.phase!=='done' && n>3){
+  } else if(LM.phase!=='idle' && LM.phase!=='done' && n>2){
     if(TR.active){ trialClearMissTimer(); trialMiss(2,'Has pisado fuera'); return; }
     LM.phase='done'; trialIndStop();
-    failRun('Se han detectado más de 3 dedos en pantalla.');
+    failRun('Se han detectado 4 dedos en pantalla (contando el ancla). Solo puede haber 3 como máximo.');
   }
 }
 function touchGuardUp(e){
