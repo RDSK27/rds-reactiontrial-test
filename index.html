@@ -422,7 +422,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v62</div>
+    <div class="app-ver">v63</div>
     </div>
 
   </main>
@@ -1184,13 +1184,23 @@ function extremoPointerUp(e){
   EN.pods[podIdx].free=true;
   var v=enRandomVel(); EN.pods[podIdx].vx=v.vx; EN.pods[podIdx].vy=v.vy;
 }
+/* Margen de tolerancia del chequeo de deriva (2026-09-28, pedido expreso):
+   antes se comparaba el punto exacto que da el navegador contra el borde
+   EXACTO del cuadrado -- con un dedo real apoyado, ese punto tiembla unos
+   pocos px de forma natural, y con eso bastaba para sancionar "fuera"
+   aunque casi todo el dedo siguiera dentro. Ahora hace falta salirse del
+   cuadrado MAS este margen para contar como fuera de verdad -- la norma
+   pasa a ser "sigue habiendo parte dentro" en vez de "en cuanto hay algo
+   fuera". Valor de partida sin validar en dispositivo real, ajustar si
+   sigue pareciendo exigente o ya se pasa de permisivo. */
+var DRIFT_PAD=16;
 function extremoCheckDrift(e){
   if(EN.phase!=='live') return;
   var podIdx=EN.ptrPod[e.pointerId];
   if(podIdx==null) return;
   var pod=$('npod'+podIdx); if(!pod) return;
   var r=pod.getBoundingClientRect();
-  if(e.clientX<r.left || e.clientX>r.right || e.clientY<r.top || e.clientY>r.bottom){
+  if(e.clientX<r.left-DRIFT_PAD || e.clientX>r.right+DRIFT_PAD || e.clientY<r.top-DRIFT_PAD || e.clientY>r.bottom+DRIFT_PAD){
     delete EN.ptrPod[e.pointerId];
     if(TR.active){ trialClearMissTimer(); trialMiss(2,'Has pisado fuera'); return; }
     EN.phase='done'; trialIndStop();
