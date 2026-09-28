@@ -422,7 +422,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v61</div>
+    <div class="app-ver">v62</div>
     </div>
 
   </main>
@@ -717,7 +717,14 @@ function runGame(){
    ptrPod: que pointerId esta sobre que pod, SOLO para poder detectar si se
    levanta el dedo del pod gris equivocado (el que debe quedarse quieto).
    placePid: version de ptrPod usada solo durante la colocacion inicial. */
-var N={ phase:'idle', occ:[4,5], placePid:{'4':null,'5':null}, ptrPod:{}, to:[], landed:[false,false], tStart:0 };
+var N={ phase:'idle', occ:[4,5], placePid:{'4':null,'5':null}, ptrPod:{}, to:[], landed:[false,false], landAt:[0,0], tStart:0 };
+/* Anti-trampa "uno en uno" (2026-09-28, pedido expreso): en Normal hay que
+   mover los 2 dedos a los 2 cuadrados rojos A LA VEZ, no primero uno y
+   luego el otro. Si el 2o dedo llega mas de NORMAL_SIMULT_MS despues del
+   1o, se considera que se han movido de uno en uno y es fallo, con el
+   motivo indicado (ver normalPointerDown). Valor de partida sin validar en
+   dispositivo real -- ajustar aqui si hace falta mas o menos margen. */
+var NORMAL_SIMULT_MS=150;
 /* El mismo cuadro de arriba hace de mensaje (colocacion/preparado) y luego
    de contador de ensayos, para que al retirarse el mensaje no cambie nada
    de tamano: es la misma caja de altura fija, solo cambia el texto. */
@@ -770,7 +777,7 @@ function failRun(msg){
 /* Normal: 6 cuadrados fijos, 2 dedos, los 2 cambian a la vez (sin ninguno
    fijo) -> se sueltan y se tocan los 2 nuevos, en cualquier orden. */
 function normalReset(){
-  N.phase='placing'; N.occ=[4,5]; N.placePid={'4':null,'5':null}; N.ptrPod={}; N.to=[]; N.landed=[false,false]; N.tStart=0;
+  N.phase='placing'; N.occ=[4,5]; N.placePid={'4':null,'5':null}; N.ptrPod={}; N.to=[]; N.landed=[false,false]; N.landAt=[0,0]; N.tStart=0;
   S.total=parseInt(S.s2,10)||15; S.times=[]; S.roundsDone=0; S.activeAccum=0; S.roundStart=null;
   TOUCHES={}; if(typeof ANC!=='undefined' && ANC.pid!=null) TOUCHES[ANC.pid]=true;
   trialIndStop();
@@ -781,7 +788,7 @@ function normalReset(){
 function normalReplace(){
   /* N.occ ya se ha corregido (si hacia falta) antes de llamar aqui: se
      recoloca siempre sobre el N.occ actual. */
-  N.phase='placing'; N.placePid={}; N.ptrPod={}; N.to=[]; N.landed=[false,false];
+  N.phase='placing'; N.placePid={}; N.ptrPod={}; N.to=[]; N.landed=[false,false]; N.landAt=[0,0];
   for(var i=0;i<6;i++){ var p=$('npod'+i); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); } }
   N.occ.forEach(function(idx){
     N.placePid[String(idx)]=null;
@@ -821,8 +828,19 @@ function normalPointerDown(e){
       return;
     }
     if(N.landed[idx]) return;
+    var otherIdx=idx===0?1:0;
+    if(N.landed[otherIdx] && (performance.now()-N.landAt[otherIdx])>NORMAL_SIMULT_MS){
+      /* El otro dedo ya llevaba puesto mas de NORMAL_SIMULT_MS antes de que
+         llegara este: se han movido de uno en uno en vez de a la vez. */
+      if(TR.active){ trialClearMissTimer(); trialMiss(2,'Has movido los dedos de uno en uno'); return; }
+      N.phase='done';
+      trialIndStop();
+      failRun('Has movido los dedos de uno en uno: tienes que llevarlos a los 2 cuadrados rojos a la vez.');
+      return;
+    }
     trialClearMissTimer();
     N.landed[idx]=true;
+    N.landAt[idx]=performance.now();
     var rt=performance.now()-N.tStart;
     S.times.push(Math.round(rt));
     N.ptrPod[e.pointerId]=Number(i);
@@ -876,7 +894,7 @@ function normalNextTrial(){
   var to1=free.splice(i1,1)[0];
   var i2=Math.floor(Math.random()*free.length);
   var to2=free.splice(i2,1)[0];
-  N.to=[to1,to2]; N.landed=[false,false];
+  N.to=[to1,to2]; N.landed=[false,false]; N.landAt=[0,0];
   var f1=$('npod'+N.occ[0]); if(f1){ f1.classList.remove('lit'); f1.style.removeProperty('--pod-color'); }
   var f2=$('npod'+N.occ[1]); if(f2){ f2.classList.remove('lit'); f2.style.removeProperty('--pod-color'); }
   var t1=$('npod'+to1); if(t1){ t1.classList.add('lit'); t1.style.setProperty('--pod-color','#e23b2e'); }
