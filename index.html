@@ -422,7 +422,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v64</div>
+    <div class="app-ver">v65</div>
     </div>
 
   </main>
@@ -615,6 +615,29 @@ var MENOR_ES_MEJOR = true;
 var UNIDAD = 'ms';
 
 function $(id){ return document.getElementById(id); }
+/* Deteccion de que cuadrado (npod0-5) se ha tocado, con un margen de
+   tolerancia (2026-09-28, pedido expreso): el usuario reportaba "pisado
+   fuera" cuando parte del dedo estaba dentro del cuadrado y parte fuera --
+   e.target.closest('.pod') a secas solo mira el elemento exacto que el
+   navegador decide que recibe el evento (un unico punto), sin margen. Si
+   el toque no cae directamente sobre un .pod, se busca el cuadrado mas
+   cercano dentro de TAP_POD_PAD px de su borde (0 si el punto ya esta
+   dentro) y se acepta ese como si se hubiera tocado directamente. Valor de
+   partida sin validar en dispositivo real -- ajustar si sigue pareciendo
+   estricto o ya se pasa de permisivo. */
+var TAP_POD_PAD=10;
+function podAt(e){
+  var direct=e.target.closest('.pod'); if(direct) return direct;
+  var cx=e.clientX, cy=e.clientY, best=null, bestD=Infinity;
+  for(var i=0;i<6;i++){
+    var el=$('npod'+i); if(!el) continue;
+    var r=el.getBoundingClientRect();
+    var dx=Math.max(r.left-cx,0,cx-r.right), dy=Math.max(r.top-cy,0,cy-r.bottom);
+    var d=Math.sqrt(dx*dx+dy*dy);
+    if(d<=TAP_POD_PAD && d<bestD){ bestD=d; best=el; }
+  }
+  return best;
+}
 function show(id){
   var s=document.querySelectorAll('.screen');
   for(var i=0;i<s.length;i++) s[i].classList.remove('active');
@@ -797,7 +820,7 @@ function normalReplace(){
   setPlacementMsg('Coloca 2 dedos en los cuadrados de abajo');
 }
 function normalPointerDown(e){
-  var pod=e.target.closest('.pod');
+  var pod=podAt(e);
   if(N.phase==='placing'){
     if(ANC.pid===null){ return; }
     if(!pod) return;
@@ -943,7 +966,7 @@ function normalInit(){
 var EN_POD_SIZE=130, EN_POD_R=EN_POD_SIZE/2, EN_POD_SPEED=105; // px, px/s -- pods mas grandes, pedido expreso (antes 84)
 var EN={ phase:'idle', pods:null, occ:[4,5], target:-1, toMove:-1, releasing:null,
          placePid:{'4':null,'5':null}, ptrPod:{}, tStart:0, raf:0, lastTs:0,
-         free:false, minX:0, maxX:0, minY:0, maxY:0 };
+         free:false, minX:0, maxX:0, minY:0, maxY:0, liftGrace:null };
 function enRandomVel(){
   var ang=Math.random()*Math.PI*2;
   return { vx:Math.cos(ang)*EN_POD_SPEED, vy:Math.sin(ang)*EN_POD_SPEED };
@@ -1035,7 +1058,7 @@ function extremoGameReset(){
   EN.phase='placing';
   enLeaveFree();
   enSetupPods();
-  EN.placePid={'4':null,'5':null}; EN.ptrPod={};
+  EN.placePid={'4':null,'5':null}; EN.ptrPod={}; EN.liftGrace=null;
   S.total=parseInt(S.s2,10)||15; S.times=[]; S.roundsDone=0; S.activeAccum=0; S.roundStart=null;
   TOUCHES={}; if(typeof ANC!=='undefined' && ANC.pid!=null) TOUCHES[ANC.pid]=true;
   trialIndStop();
@@ -1048,7 +1071,7 @@ function extremoGameReset(){
 function extremoReplace(){
   /* EN.occ ya se ha corregido (si hacia falta) antes de llamar aqui. Todo
      se queda quieto donde este mientras se vuelven a colocar los 2 dedos. */
-  EN.phase='placing'; EN.placePid={}; EN.ptrPod={}; EN.target=-1; EN.toMove=-1; EN.releasing=null;
+  EN.phase='placing'; EN.placePid={}; EN.ptrPod={}; EN.target=-1; EN.toMove=-1; EN.releasing=null; EN.liftGrace=null;
   for(var i=0;i<6;i++){
     if(EN.pods && EN.pods[i]) EN.pods[i].free=false;
     var p=$('npod'+i); if(p){ p.classList.remove('lit','pressed'); p.style.removeProperty('--pod-color'); }
@@ -1061,7 +1084,15 @@ function extremoReplace(){
 }
 function extremoPointerDown(e){
   if(e.target.closest('#sizeBtn')) return;
-  var pod=e.target.closest('.pod');
+  var pod=podAt(e);
+  if(EN.phase==='live' && EN.liftGrace && pod && Number(pod.getAttribute('data-i'))===EN.liftGrace.pod){
+    /* recuperacion dentro del margen de gracia (ver LIFT_GRACE_MS): un dedo
+       nuevo aterriza en el MISMO cuadrado que se acababa de "soltar" -- se
+       readopta como si nunca se hubiera soltado, sin penalizacion. */
+    EN.ptrPod[e.pointerId]=EN.liftGrace.pod;
+    EN.liftGrace=null;
+    return;
+  }
   if(EN.phase==='placing'){
     if(ANC.pid===null){ return; }
     if(!pod) return;
@@ -1135,6 +1166,7 @@ function extremoStartCountdown(){
 }
 function extremoNextTrial(){
   EN.phase='live';
+  EN.liftGrace=null;   // una gracia pendiente de la ronda anterior no debe colar en esta (nonstop encadena sin pausa)
   var free=[]; for(var i=0;i<6;i++){ if(EN.occ.indexOf(i)<0) free.push(i); }
   EN.target=free[Math.floor(Math.random()*free.length)];
   EN.releasing=null;
@@ -1168,12 +1200,19 @@ function extremoPointerUp(e){
   if(EN.occ.indexOf(podIdx)<0) return; // ya no es uno de los 2 anclados actuales
   if(podIdx!==EN.toMove){
     /* Se ha soltado el gris que tenia que quedarse quieto -- el que hay
-       que mover es el que esta en negro (EN.toMove). Fallo inmediato,
-       mismo patron que "dedo fijo" en Extremo/LM (limitePointerUp). */
+       que mover es el que esta en negro (EN.toMove). No falla al instante:
+       se da un margen breve por si es un resbalon real (ver LIFT_GRACE_MS
+       y la rama de recuperacion en extremoPointerDown). */
     delete EN.ptrPod[pid];
-    if(TR.active){ trialClearMissTimer(); trialMiss(2,'Has soltado el cuadrado equivocado'); return; }
-    EN.phase='done'; trialIndStop();
-    failRun('Has soltado el cuadrado gris equivocado. El que tienes que mover es el que estaba en negro.');
+    var _tok={};
+    EN.liftGrace={pod:podIdx, tok:_tok};
+    setTimeout(function(){
+      if(!EN.liftGrace || EN.liftGrace.tok!==_tok || EN.phase!=='live') return;
+      EN.liftGrace=null;
+      if(TR.active){ trialClearMissTimer(); trialMiss(2,'Has soltado el cuadrado equivocado'); return; }
+      EN.phase='done'; trialIndStop();
+      failRun('Has soltado el cuadrado gris equivocado. El que tienes que mover es el que estaba en negro.');
+    }, LIFT_GRACE_MS);
     return;
   }
   delete EN.ptrPod[pid];
@@ -1194,6 +1233,22 @@ function extremoPointerUp(e){
    fuera". Valor de partida sin validar en dispositivo real, ajustar si
    sigue pareciendo exigente o ya se pasa de permisivo. */
 var DRIFT_PAD=16;
+/* Margen de gracia por "resbalon" al soltar el dedo fijo/gris que debe
+   quedarse quieto (2026-09-28, pedido expreso): el usuario reportaba que
+   al pasar de apoyar la yema a apoyar la uña (o simplemente resbalar un
+   poco sin querer soltar), el sistema tactil a veces manda un pointerup+
+   pointerdown real de ese mismo dedo -- antes eso era fallo INSTANTANEO
+   ("has levantado el dedo"/"cuadrado equivocado"). Ahora, ese pointerup no
+   falla al momento: se guarda en *.liftGrace {pod, tok} y se espera
+   LIFT_GRACE_MS antes de fallar de verdad. Si en ese ratito aterriza un
+   dedo nuevo en el MISMO cuadrado (ver la rama de recuperacion al
+   principio de extremoPointerDown/limitePointerDown), se recupera sin
+   penalizacion. La ventana es corta a proposito: alcanza para un
+   resbalon real (tipicamente <50ms) pero es demasiado corta para usarse
+   como tecnica deliberada de "toco y suelto" sin perder tiempo. NO se
+   toca el requisito en si (el dedo fijo sigue teniendo que estar puesto
+   de verdad) -- solo se tolera una perdida de contacto MOMENTANEA. */
+var LIFT_GRACE_MS=90;
 function extremoCheckDrift(e){
   if(EN.phase!=='live') return;
   var podIdx=EN.ptrPod[e.pointerId];
@@ -1218,9 +1273,9 @@ function extremoInit(){
 /* Era la mecanica antigua de Normal: cambia UN objetivo cada vez (alternando
    entre los 2 dedos), con el limite de cruces "complejos" y el fallo por
    soltar el dedo fijo. Se traslada aqui por ser mas dificil. */
-var LM={ phase:'idle', occ:[4,5], placePid:{'4':null,'5':null}, ptrPod:{}, from:-1, to:-1, tStart:0, complexCount:0 };
+var LM={ phase:'idle', occ:[4,5], placePid:{'4':null,'5':null}, ptrPod:{}, from:-1, to:-1, tStart:0, complexCount:0, liftGrace:null };
 function limiteGameReset(){
-  LM.phase='placing'; LM.occ=[4,5]; LM.placePid={'4':null,'5':null}; LM.ptrPod={}; LM.from=-1; LM.to=-1; LM.tStart=0; LM.complexCount=0;
+  LM.phase='placing'; LM.occ=[4,5]; LM.placePid={'4':null,'5':null}; LM.ptrPod={}; LM.from=-1; LM.to=-1; LM.tStart=0; LM.complexCount=0; LM.liftGrace=null;
   S.total=parseInt(S.s2,10)||15; S.times=[]; S.roundsDone=0; S.activeAccum=0; S.roundStart=null;
   TOUCHES={}; if(typeof ANC!=='undefined' && ANC.pid!=null) TOUCHES[ANC.pid]=true;
   trialIndStop();
@@ -1230,7 +1285,7 @@ function limiteGameReset(){
 }
 function limiteReplace(){
   /* LM.occ ya se ha corregido (si hacia falta) antes de llamar aqui. */
-  LM.phase='placing'; LM.placePid={}; LM.ptrPod={}; LM.from=-1; LM.to=-1;
+  LM.phase='placing'; LM.placePid={}; LM.ptrPod={}; LM.from=-1; LM.to=-1; LM.liftGrace=null;
   for(var i=0;i<6;i++){ var p=$('npod'+i); if(p){ p.classList.remove('lit'); p.style.removeProperty('--pod-color'); } }
   LM.occ.forEach(function(idx){
     LM.placePid[String(idx)]=null;
@@ -1239,7 +1294,15 @@ function limiteReplace(){
   setPlacementMsg('Coloca 2 dedos en los cuadrados de abajo');
 }
 function limitePointerDown(e){
-  var pod=e.target.closest('.pod');
+  var pod=podAt(e);
+  if((LM.phase==='live' || LM.phase==='pause') && LM.liftGrace && pod && Number(pod.getAttribute('data-i'))===LM.liftGrace.pod){
+    /* recuperacion dentro del margen de gracia (ver LIFT_GRACE_MS): un dedo
+       nuevo aterriza en el MISMO cuadrado que se acababa de "soltar" -- se
+       readopta como si nunca se hubiera soltado, sin penalizacion. */
+    LM.ptrPod[e.pointerId]=LM.liftGrace.pod;
+    LM.liftGrace=null;
+    return;
+  }
   if(LM.phase==='placing'){
     if(ANC.pid===null){ return; }
     if(!pod) return;
@@ -1310,6 +1373,7 @@ function limiteStartCountdown(){
 }
 function limiteNextTrial(){
   LM.phase='live';
+  LM.liftGrace=null;   // una gracia pendiente de la ronda anterior no debe colar en esta (nonstop encadena sin pausa)
   if(S.times.length%5===0) LM.complexCount=0;
   var from=LM.occ[Math.floor(Math.random()*LM.occ.length)];
   /* columna = paridad del indice del pod (0,2,4 izquierda; 1,3,5 derecha).
@@ -1350,11 +1414,21 @@ function limitePointerUp(e){
   if(LM.phase==='live' || LM.phase==='pause'){
     var pinned = (LM.occ[0]===LM.from) ? LM.occ[1] : LM.occ[0];
     if(LM.ptrPod[pid]===pinned){
-      /* se levanto el dedo del pod gris (el que debia quedarse quieto) */
-      if(TR.active){ trialClearMissTimer(); trialMiss(2,'Has pisado fuera'); return; }
-      LM.phase='done';
-      trialIndStop();
-      failRun('Has levantado el dedo antes de tiempo. Vuelve a intentarlo.');
+      /* se levanto el dedo del pod gris (el que debia quedarse quieto). No
+         falla al instante: se da un margen breve por si es un resbalon
+         real (ver LIFT_GRACE_MS y la rama de recuperacion en
+         limitePointerDown). */
+      delete LM.ptrPod[pid];
+      var _tok={};
+      LM.liftGrace={pod:pinned, tok:_tok};
+      setTimeout(function(){
+        if(!LM.liftGrace || LM.liftGrace.tok!==_tok || (LM.phase!=='live' && LM.phase!=='pause')) return;
+        LM.liftGrace=null;
+        if(TR.active){ trialClearMissTimer(); trialMiss(2,'Has pisado fuera'); return; }
+        LM.phase='done';
+        trialIndStop();
+        failRun('Has levantado el dedo antes de tiempo. Vuelve a intentarlo.');
+      }, LIFT_GRACE_MS);
     }
   }
 }
