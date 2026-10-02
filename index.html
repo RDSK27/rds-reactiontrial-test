@@ -191,6 +191,24 @@ if('serviceWorker' in navigator){
   #game.en-free .stub-body{ touch-action:none; }
   #game.en-free #normalArena .pod{ position:absolute; width:var(--pod-size,130px); height:var(--pod-size,130px); margin:0; }
 
+  /* v79: la pantalla de juego cabe SIEMPRE en la altura disponible (p. ej. abierta desde SuiteRDS, con barra
+     inferior): el panel y la arena encogen (flex) y fitPods() reduce el tamano de los cuadrados solo lo justo;
+     en pantallas altas todo queda como antes (cuadrados de 130 / 118 px). Inicio/Repetir siempre visibles. */
+  #game .stub-body{ min-height:0; overflow:hidden; }
+  #game .trial-game-panel{ flex:0 1 auto; min-height:0; display:flex; flex-direction:column; }
+  #game .trial-arena{ flex:0 1 auto; min-height:0; }
+  #game .trial-game-msg{ flex:none; }
+  #game .size-btn{ flex:none; }
+  @media (max-height:760px){
+    .trial-ind>div{ padding:3px 2px; }
+    .trial-ind .v{ font-size:0.85rem; line-height:1.1; }
+    #game.trial-mode .stub-body{ padding:6px 12px; gap:6px; }
+    #game .trial-game-msg{ height:34px; font-size:13px; line-height:16px; margin-bottom:4px; }
+    #game.trial-mode .trial-game-panel{ padding:8px 14px 10px; }
+    #game .trial-game-panel{ padding:10px 16px 12px; }
+    .size-btn{ height:24px; font-size:11px; margin-bottom:-6px; }
+  }
+
 
   footer{
     text-align:center;color:var(--tx-gris);font-weight:600;letter-spacing:2px;
@@ -423,7 +441,7 @@ if('serviceWorker' in navigator){
       </select>
     </div>
   </div>
-    <div class="app-ver">v78</div>
+    <div class="app-ver">v79</div>
     <div id="pending-sync" class="pending-sync"></div>
     </div>
 
@@ -726,6 +744,7 @@ function runGame(){ try{ warmRank(S.s1,S.s2,(S.s1==='trial')?'':S.s3); }catch(e)
   var gs=$('game'); if(gs) gs.classList.toggle('trial-mode', TR.active);
   if(na) na.style.display='';
   enLeaveFree(); // Limite (EN) solo pasa a .en-free al empezar a moverse (enGoFree)
+  fitPods();
   if(S.s1==='extremo'){
     N.phase='idle'; LM.phase='idle';
     extremoGameReset();
@@ -2031,11 +2050,28 @@ function touchGuardInit(){
    mas (CSS: #game.size-reduced). El panel negro no cambia. Solo se puede
    cambiar mientras se colocan los dedos, nunca en pleno ejercicio. La
    eleccion se recuerda (localStorage) entre sesiones. */
+/* Ajusta el tamano de los cuadrados (--pod-size / --pod-gap) a la altura que de verdad queda para la arena
+   (la arena y su panel encogen por flex). Maximo = el tamano de siempre (130, o 118 en "Reducir"); solo baja si
+   la pantalla es baja. EN_POD_SIZE (movimiento libre del modo Limite) sigue siempre al tamano real. */
+function fitPods(){
+  var a=$('normalArena'), g=$('game'); if(!a||!g) return;
+  var red=g.classList.contains('size-reduced');
+  var base=red?118:130, ratio=(red?8:28)/base;
+  a.style.removeProperty('--pod-size'); a.style.removeProperty('--pod-gap');
+  var pnl=a.parentElement, h=a.clientHeight, w=(pnl?pnl.clientWidth:a.clientWidth)-12;   // ancho: el panel entero (la rejilla ya podia sobresalir un poco del relleno)
+  if(!h||w<=0) return;   // pantalla de juego oculta: se vuelve a llamar al entrar
+  var pod=Math.min(base, Math.floor(h/(3+2*ratio)), Math.floor(w/(2+ratio)));
+  pod=Math.max(pod,44);
+  a.style.setProperty('--pod-size',pod+'px'); a.style.setProperty('--pod-gap',Math.round(pod*ratio)+'px');
+  EN_POD_SIZE=pod; EN_POD_R=pod/2;
+}
+window.addEventListener('resize', function(){ var g=$('game'); if(g && g.classList.contains('active') && !g.classList.contains('en-free')) fitPods(); });
 var SIZE_LS_KEY='rds_rtrial_reduced';
 function applySize(reduced){
   var g=$('game'); if(g) g.classList.toggle('size-reduced', reduced);
   var b=$('sizeBtn'); if(b) b.textContent=reduced?'Ampliar':'Reducir';
   EN_POD_SIZE=reduced?118:130; EN_POD_R=EN_POD_SIZE/2;   // Limite: los pods mantienen el tamano de la rejilla al moverse (= --pod-size)
+  try{ fitPods(); }catch(e){}
 }
 function sizeBtnAllowed(){
   if(S.s1==='extremo') return EN.phase==='placing' && !EN.free;   // Limite (EN)
