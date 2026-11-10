@@ -348,6 +348,43 @@ if('serviceWorker' in navigator){
   #ancLabel{ position:relative; pointer-events:none; font-family:inherit; font-weight:900; text-transform:uppercase;
     letter-spacing:0.03em; font-size:10px; line-height:1.25; text-align:center; color:#b03020; }
   #ancZone.set #ancLabel{ color:#1a7a35; font-size:22px; }
+  /* ===== modo x2 (dos jugadores, 2026-11-10) ===== */
+  .segment button.x2on{background:#F5C400;color:#111;text-shadow:none;}
+  .segment button.x2-off,.x2-dim{opacity:.35;pointer-events:none;}
+  body.x2-active header{display:none;}
+  body.x2-active #ancZone{display:none;}
+  #x2{background:#fff;touch-action:none;-webkit-user-select:none;user-select:none;}
+  .x2-zone{flex:1;min-height:0;display:flex;flex-direction:column;gap:4px;padding:8px 12px 10px;box-sizing:border-box;background:#fff;}
+  .x2-top{transform:rotate(180deg);}
+  .x2-info{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:0 4px;flex:none;font-family:Arial,sans-serif;font-weight:900;white-space:nowrap;}
+  .x2-info>span{flex:1;}
+  .x2-pts{font-size:15px;line-height:1.15;color:var(--rojo);}
+  .x2-pts.x2-blink{animation:x2blink .8s steps(2,jump-none) infinite;}
+  @keyframes x2blink{from{opacity:1;}to{opacity:.12;}}
+  .x2-gm,.x2-who{font-size:15px;color:#111;}
+  .x2-who{text-align:center;font-size:17px;}
+  .x2-gm{text-align:right;}
+  .x2-info b{font-size:22px;}
+  .x2-msg{flex:none;height:22px;text-align:center;font:900 16px/22px Arial,sans-serif;color:#111;text-transform:uppercase;white-space:nowrap;overflow:hidden;}
+  .x2-area{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center;}
+  .x2-grid{display:grid;grid-template-columns:repeat(3,90px);grid-template-rows:repeat(2,90px);gap:12px;padding:12px;border:3px solid #b03020;border-radius:14px;background:#151515;}
+  .x2-grid .xpod{position:relative;border-radius:16px;touch-action:none;background:conic-gradient(#ffffff,#9a9a9a,#e8e8e8,#5a5a5a,#ffffff,#8a8a8a,#dcdcdc,#666666,#ffffff);box-shadow:0 3px 7px rgba(0,0,0,.5);}
+  .x2-grid .xpod::before{content:'';position:absolute;inset:4px;border-radius:12px;background:radial-gradient(circle at 35% 30%, #3a3a3a 0%, #1a1a1a 50%, #050505 100%);box-shadow:inset 0 2px 4px rgba(255,255,255,.22), inset 0 -3px 6px rgba(0,0,0,.6);pointer-events:none;}
+  .x2-grid .xpod.lit::before{background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.30) 0%, rgba(255,255,255,0) 46%), radial-gradient(circle at 50% 82%, rgba(0,0,0,.40) 0%, rgba(0,0,0,0) 58%), var(--pod-color,#e23b2e);}
+  .x2-panel{touch-action:pan-y;position:absolute;inset:0;z-index:2;display:none;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:10px 14px;box-sizing:border-box;background:#fff;border:2px solid #111;border-radius:8px;text-align:center;overflow:auto;font-family:Arial,sans-serif;color:#111;}
+  .x2-panel.on{display:flex;}
+  .x2-pt{font-size:21px;font-weight:900;line-height:1.15;color:var(--rojo);}
+  .x2-pr{font-size:15px;font-weight:700;line-height:1.3;}
+  .x2-rules{font-size:12.5px;font-weight:600;line-height:1.25;}
+  .x2-pbs{display:flex;gap:10px;}
+  .x2-bt{min-width:120px;padding:12px 16px;background:var(--rojo);color:#fff;border:0;border-radius:6px;font:900 15px Arial,sans-serif;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;}
+  .x2-bt.x2-sec{background:#111;}
+  .x2-bt:disabled{background:#8a8a8a;cursor:default;}
+  @media (max-height:620px){ .x2-panel{gap:3px;padding:2px 10px;} .x2-pt{font-size:18px;} .x2-pr{font-size:13px;line-height:1.2;} .x2-bt{min-width:104px;padding:9px 12px;font-size:14px;} .x2-rules{font-size:11px;line-height:1.15;} }
+  .x2-mid{display:flex;align-items:center;justify-content:center;position:relative;flex:none;height:50px;background:#111;border-top:3px solid #b03020;border-bottom:3px solid #b03020;box-sizing:border-box;}
+  #x2Lights{display:flex;gap:10px;}
+  .x2-lt{display:block;width:26px;height:26px;border-radius:50%;background:#d8281c;box-shadow:inset 0 3px 5px rgba(255,255,255,.35),0 0 10px rgba(216,40,28,.7);}
+  #x2Stop{position:absolute;right:12px;top:50%;margin-top:-17px;width:34px;height:34px;padding:0;border-radius:50%;border:2px solid #fff;background:#b03020;color:#fff;font:900 18px Arial,sans-serif;line-height:1;cursor:pointer;}
 </style>
 </head>
 <body class="home-active">
@@ -384,6 +421,7 @@ if('serviceWorker' in navigator){
            cambia, solo la etiqueta visible que el usuario elige. -->
       <button data-v="limite">Extremo</button>
       <button data-v="extremo">Límite</button>
+      <button data-v="x2" id="x2Btn">x2</button>
     </div>
 
     <div class="segment" id="seg2">
@@ -409,7 +447,7 @@ if('serviceWorker' in navigator){
           <button class="start-btn rank-btn" ontouchend="event.stopPropagation();" onclick="showRanking()" aria-label="Ranking"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 13.5v7.5M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 4H4v2a3 3 0 0 0 3 3M17 4h3v2a3 3 0 0 1-3 3"/></svg></button>
         </div>
       </div>
-  <div class="app-ver" style="margin-top:6px;padding-top:0;">v88</div>
+  <div class="app-ver" style="margin-top:6px;padding-top:0;">v89</div>
   <div id="user-name-bar" style="margin-top:8px;">
     <div style="display:flex;width:200px;gap:0;margin:0 auto;">
       <input id="user-ini-input" type="text" maxlength="3" placeholder="INI" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="done"
@@ -513,6 +551,26 @@ if('serviceWorker' in navigator){
   <div id="trialMissFlash" style="display:none;position:fixed;inset:0;background:rgba(176,32,32,0.94);z-index:5000;align-items:center;justify-content:center;padding:20px;">
     <div style="color:#fff;font-weight:900;font-size:1.8rem;text-transform:uppercase;letter-spacing:0.06em;text-align:center;">Fallo</div>
   </div>
+  </section>
+
+  <section id="x2" class="screen">
+    <div class="x2-zone x2-top" id="x2z1">
+      <div class="x2-info"><span class="x2-pts"></span><span class="x2-who"></span><span class="x2-gm"></span></div>
+      <div class="x2-msg"></div>
+      <div class="x2-area">
+        <div class="x2-grid"><div class="xpod" data-p="1" data-i="0"></div><div class="xpod" data-p="1" data-i="1"></div><div class="xpod" data-p="1" data-i="2"></div><div class="xpod" data-p="1" data-i="3"></div><div class="xpod" data-p="1" data-i="4"></div><div class="xpod" data-p="1" data-i="5"></div></div>
+        <div class="x2-panel"></div>
+      </div>
+    </div>
+    <div class="x2-mid"><div id="x2Lights"></div><button id="x2Stop" type="button" aria-label="Parar">&#10005;</button></div>
+    <div class="x2-zone" id="x2z0">
+      <div class="x2-info"><span class="x2-pts"></span><span class="x2-who"></span><span class="x2-gm"></span></div>
+      <div class="x2-msg"></div>
+      <div class="x2-area">
+        <div class="x2-grid"><div class="xpod" data-p="0" data-i="0"></div><div class="xpod" data-p="0" data-i="1"></div><div class="xpod" data-p="0" data-i="2"></div><div class="xpod" data-p="0" data-i="3"></div><div class="xpod" data-p="0" data-i="4"></div><div class="xpod" data-p="0" data-i="5"></div></div>
+        <div class="x2-panel"></div>
+      </div>
+    </div>
   </section>
 
   <section id="result" class="screen">
@@ -673,6 +731,7 @@ function show(id){ if(id!=='ranking' && typeof stopRankWatch==='function') stopR
   $(id).classList.add('active');
   document.body.classList.toggle('home-active', id==='home');
   document.body.classList.toggle('game-active', id==='game');
+  document.body.classList.toggle('x2-active', id==='x2');
 }
 function two(n){ return (n<10?'0':'')+n; }
 function fmtTime(ms){ var cs=Math.floor(ms/10), cc=cs%100, s=Math.floor(cs/100), sec=s%60, m=Math.floor(s/60); return m+':'+two(sec)+'.'+two(cc); }
@@ -731,6 +790,7 @@ function filterInitials(el){ el.value=el.value.replace(/[^A-Za-z]/g,'').toUpperC
 
 /* ---------- Arranque del ejercicio ---------- */
 function startGame(){
+  if(xIsOn()){ startX2(); return; }
   S.s1=selVal('seg1')||'a';
   S.s2=selVal('seg2')||'a';
   S.s3=selVal('seg3')||'a';
@@ -2139,7 +2199,206 @@ function sizeInit(){
   setInterval(function(){ var b=$('sizeBtn'); if(b) b.disabled=!sizeBtnAllowed(); }, 150);
 }
 
-seg('seg1'); seg('seg2'); seg('seg3'); trialInit(); normalInit(); extremoInit(); limiteInit(); touchGuardInit(); sizeInit();
+/* ---------- modo x2: dos jugadores en un movil, sin ranking (2026-11-10) ----------
+   Interruptor amarillo en la fila de modos; solo con Normal (Extremo, Limite, 15/30/50, Non-stop/Pausa y Trial atenuados). Sin ancla.
+   Jugador 1 = mitad de abajo, jugador 2 = mitad de arriba (girada 180 grados). Cada uno tiene 6 cuadrados (2 filas de 3).
+   Colocacion: cada uno pone 2 dedos en los 2 cuadrados que quiera. Cuando los dos estan colocados (al empezar el set, con semaforo)
+   hay una espera al azar y salen 2 cuadrados rojos para cada jugador (sorteados entre los 4 que no tiene ocupados: como cada uno puede
+   tener los dedos en sitios distintos, los rojos no son los mismos para los dos). Gana el punto quien coloca primero los 2 dedos en sus rojos.
+   Fallo (-1 para quien lo hace y +1 para el rival): levantar o poner un dedo antes de que salgan los rojos (salida en falso), tocar fuera
+   de los rojos, mover los dedos de uno en uno (mas de NORMAL_SIMULT_MS entre uno y otro) o poner mas de 2 dedos en su zona.
+   Tras cada punto, X_FREEZE ms y vuelta a colocar (si ya tiene 2 dedos en 2 cuadrados, ya esta colocado).
+   Set = primero a 10 puntos, con 9-9 hacen falta 2 de diferencia; partido = primero a 3 sets. */
+var X={on:false,state:'',pts:[0,0],games:[0,0],gameNo:1,hist:[],ready:[false,false],to:0,ptr:{},tgt:[[],[]],land:[[0,0],[0,0]],t0:0,lights:true};
+var X_TOTAL=10, X_MARGIN=2, X_WINGAMES=3, X_FREEZE=1000;
+function xSetWon(a,b){ return a>=X_TOTAL && a-b>=X_MARGIN; }
+function xIsOn(){ var b=$('x2Btn'); return !!(b && b.classList.contains('x2on')); }
+function xToggle(b){
+  var on=b.classList.toggle('x2on'), box=$('seg1'), i, bs;
+  ['limite','extremo'].forEach(function(v){ var e=box.querySelector('[data-v="'+v+'"]'); e.classList.toggle('x2-off',on); if(on) e.classList.remove('sel'); });
+  if(on) box.querySelector('[data-v="normal"]').classList.add('sel');
+  ['seg2','seg3'].forEach(function(id){ bs=$(id).querySelectorAll('button'); for(i=0;i<bs.length;i++) bs[i].classList.toggle('x2-off',on); });
+  var t=$('btn-trial-wrap'); if(t) t.classList.toggle('x2-dim',on);
+}
+function xClear(){ if(X.to){ clearTimeout(X.to); X.to=0; } }
+function xZone(p,sel){ return $('x2z'+p).querySelector(sel); }
+function xPanel(p,html){ var e=xZone(p,'.x2-panel'); e.innerHTML=html||''; e.classList.toggle('on',!!html); }
+function xPanelsOff(){ xPanel(0); xPanel(1); }
+function xMsg(a,b){ xZone(0,'.x2-msg').innerHTML=a||''; xZone(1,'.x2-msg').innerHTML=b||''; }
+function xBtn(act,txt,sec){ return '<button class="x2-bt'+(sec?' x2-sec':'')+'" type="button" data-x="'+act+'">'+txt+'</button>'; }
+function xRes(a,b){ return a+' &ndash; '+b; }
+function xRender(){
+  var extra=X.on && X.pts[0]>=X_TOTAL-1 && X.pts[1]>=X_TOTAL-1, p;
+  for(p=0;p<2;p++){
+    var pts=xZone(p,'.x2-pts');
+    pts.innerHTML='Set <b>'+xRes(X.pts[p],X.pts[1-p])+'</b>';
+    pts.classList.toggle('x2-blink',extra);
+    xZone(p,'.x2-who').textContent='Jugador '+(p+1);
+    xZone(p,'.x2-gm').innerHTML='Partido <b>'+xRes(X.games[p],X.games[1-p])+'</b>';
+  }
+}
+function xFingers(p){ var n=0, k; for(k in X.ptr) if(X.ptr[k].p===p) n++; return n; }
+function xOcc(p){ var o=[], k, i; for(k in X.ptr){ i=X.ptr[k].i; if(X.ptr[k].p===p && i>=0 && o.indexOf(i)<0) o.push(i); } return o; }
+function xIsReady(p){ return xFingers(p)===2 && xOcc(p).length===2; }
+function xPaint(){
+  for(var p=0;p<2;p++){
+    var occ=xOcc(p), stim=X.state==='stim', i, el, k, c;
+    for(i=0;i<6;i++){
+      el=xZone(p,'.xpod[data-i="'+i+'"]'); k=stim?X.tgt[p].indexOf(i):-1; c='';
+      if(k>=0) c=X.land[p][k]?'#8a8a8a':'#e23b2e';
+      else if(occ.indexOf(i)>=0) c='#8a8a8a';
+      el.classList.toggle('lit',!!c);
+      if(c) el.style.setProperty('--pod-color',c); else el.style.removeProperty('--pod-color');
+    }
+  }
+}
+function xFit(){   /* 6 cuadrados lo mas grandes que quepan en la zona */
+  for(var p=0;p<2;p++){
+    var a=xZone(p,'.x2-area'), g=xZone(p,'.x2-grid'), w=a.clientWidth, h=a.clientHeight;
+    if(w<60 || h<60) continue;
+    var s=Math.floor(Math.min((w-8)/3.52,(h-8)/2.4))   /* ancho = 3s+2 huecos+relleno+borde */, gap=Math.max(6,Math.round(s*0.12));
+    s=Math.max(40,Math.min(s,140));
+    g.style.gridTemplateColumns='repeat(3,'+s+'px)'; g.style.gridTemplateRows='repeat(2,'+s+'px)'; g.style.gap=gap+'px'; g.style.padding=Math.round(gap*1.1)+'px';
+  }
+}
+window.addEventListener('resize', function(){ if($('x2').classList.contains('active')) xFit(); });
+function xLightsDraw(n){ var h='', i; for(i=0;i<n;i++) h+='<i class="x2-lt"></i>'; $('x2Lights').innerHTML=h; }
+function xReset(){ xClear(); X.pts=[0,0]; X.games=[0,0]; X.gameNo=1; X.hist=[]; X.tgt=[[],[]]; X.land=[[0,0],[0,0]]; xPanelsOff(); xMsg(); xLightsDraw(0); }
+function startX2(){   /* pantalla inicial con la informacion para cada jugador */
+  N.phase='idle'; EN.phase='idle'; LM.phase='idle'; TR.active=false; trialIndStop();
+  if(typeof ANC!=='undefined'){ ANC.pid=null; ancVisual(); }
+  xReset(); X.on=false; X.state='intro'; X.ready=[false,false];
+  show('x2'); $('x2Stop').style.display='block'; xRender(); xPaint(); xFit(); setTimeout(xFit,0);
+  for(var p=0;p<2;p++) xPanel(p,'<div class="x2-pt">Jugador '+(p+1)+'</div>'
+    +'<div class="x2-pr">Gana el partido el primero que gane 3 sets.<br>Gana el set el primero que llegue a 10 puntos; con empate a 9 hacen falta 2 de diferencia.</div>'
+    +'<div class="x2-rules">Pon 2 dedos en los cuadrados que quieras. Cuando salgan los 2 rojos, ll&eacute;valos los dos a la vez: el primero que llega suma 1. Si te adelantas, tocas fuera o los mueves de uno en uno, -1 para ti y +1 para el rival.</div>'
+    +xBtn('start','Empezar'));
+}
+function xReady(p,b,a){   /* Empezar/Continuar: arranca cuando lo han pulsado los dos */
+  X.ready[p]=true; b.disabled=true; b.textContent='Esperando';
+  if(!X.ready[0] || !X.ready[1]) return;
+  X.ready=[false,false];
+  if(a==='start') xBegin(); else xContinue();
+}
+function xBegin(){ xReset(); X.on=true; $('x2Stop').style.display='block'; xRender(); xSetStart(); }
+function xContinue(){ X.pts=[0,0]; X.gameNo++; xPanelsOff(); xRender(); xSetStart(); }
+function xSetStart(){ X.lights=true; xPlace(); }
+function xPlace(){   /* esperar a que los dos tengan 2 dedos en 2 cuadrados */
+  xClear(); X.state='place'; X.tgt=[[],[]]; X.land=[[0,0],[0,0]];
+  xPaint(); xCheckReady();
+}
+function xCheckReady(){
+  var r0=xIsReady(0), r1=xIsReady(1);
+  if(X.state==='place'){
+    xMsg(r0?(r1?'':'Esperando al rival'):'Coloca 2 dedos', r1?(r0?'':'Esperando al rival'):'Coloca 2 dedos');
+    if(r0 && r1){ xMsg(); if(X.lights) xLights(); else xWait(); }
+  } else if(X.state==='count' && !(r0 && r1)){ xLightsDraw(0); xPlace(); }
+}
+function xLights(){   /* semaforo al empezar cada set: 3 luces rojas, se quita una cada 0,7 s */
+  var n=3; X.state='count'; xLightsDraw(n); sndTick();
+  function step(){ X.to=setTimeout(function(){ X.to=0; if(!X.on || X.state!=='count') return; n--; xLightsDraw(n); if(n<=0){ X.lights=false; xWait(); return; } sndTick(); step(); }, 700); }
+  step();
+}
+function xWait(){
+  X.state='wait'; xPaint();
+  X.to=setTimeout(function(){ X.to=0; if(X.on && X.state==='wait') xStim(); }, 600+Math.random()*1800);
+}
+function xStim(){
+  for(var p=0;p<2;p++){
+    var occ=xOcc(p), free=[], i;
+    for(i=0;i<6;i++) if(occ.indexOf(i)<0) free.push(i);
+    i=Math.floor(Math.random()*free.length); var a=free.splice(i,1)[0];
+    i=Math.floor(Math.random()*free.length); X.tgt[p]=[a,free[i]];
+  }
+  X.land=[[0,0],[0,0]]; X.state='stim'; X.t0=performance.now(); xPaint();
+}
+function xPoint(w,msgW,msgL){   /* w suma; si msgL va con -1 (fallo de 1-w) se lo resta al otro */
+  X.state='freeze'; xClear();
+  var m=['',''];
+  if(msgL){ X.pts[1-w]--; X.pts[w]++; m[1-w]=msgL; m[w]='Fallo rival +1'; }
+  else { X.pts[w]++; m[w]=msgW; m[1-w]='Punto rival'; }
+  xMsg(m[0],m[1]); xRender();
+  X.tgt=[[],[]]; xPaint();
+  X.to=setTimeout(function(){ X.to=0; xMsg(); xAfter(); }, X_FREEZE);
+}
+function xFault(p,msg){ xPoint(1-p,'',msg); }
+function xAfter(){
+  if(!X.on) return;
+  if(xSetWon(X.pts[0],X.pts[1])){ xGameEnd(0); return; }
+  if(xSetWon(X.pts[1],X.pts[0])){ xGameEnd(1); return; }
+  xPlace();
+}
+function xGameEnd(i){
+  var p, h, j;
+  X.games[i]++; X.hist.push([X.pts[0],X.pts[1]]);
+  if(X.games[i]>=X_WINGAMES){
+    X.on=false; X.state='end'; xRender(); $('x2Stop').style.display='none'; sndHit();
+    for(p=0;p<2;p++){
+      for(h=[],j=0;j<X.hist.length;j++) h.push(xRes(X.hist[j][p],X.hist[j][1-p]));
+      xPanel(p,'<div class="x2-pt">'+(p===i?'&iexcl;Enhorabuena, Jugador '+(p+1)+'!':'Jugador '+(i+1)+' gana el partido')+'</div>'
+        +'<div class="x2-pr">'+(p===i?'Has ganado el partido ':'Has perdido el partido ')+xRes(X.games[p],X.games[1-p])+'<br>Sets: '+h.join(', ')+'</div>'
+        +'<div class="x2-pbs">'+xBtn('home','Inicio',true)+xBtn('again','Repetir')+'</div>');
+    }
+    return;
+  }
+  X.state='between'; X.ready=[false,false]; xRender();
+  for(p=0;p<2;p++) xPanel(p,'<div class="x2-pt">Has '+(p===i?'ganado':'perdido')+' el set '+X.gameNo+'</div>'
+    +'<div class="x2-pr">Set '+xRes(X.pts[p],X.pts[1-p])+'<br>Partido '+xRes(X.games[p],X.games[1-p])+'</div>'
+    +xBtn('next','Continuar'));
+}
+function xStop(){
+  if(X.state==='intro'){ xHome(); return; }
+  xClear(); X.on=false; X.state='end'; xLightsDraw(0); xMsg(); X.tgt=[[],[]]; xPaint(); xRender(); $('x2Stop').style.display='none';
+  for(var p=0;p<2;p++) xPanel(p,'<div class="x2-pt">Partida parada</div><div class="x2-pbs">'+xBtn('home','Inicio',true)+xBtn('again','Repetir')+'</div>');
+}
+function xHome(){ xClear(); X.on=false; X.state=''; X.ptr={}; show('home'); }
+function xDown(e){
+  var z=e.target.closest ? e.target.closest('.x2-zone') : null;
+  if(!z || e.target.closest('.x2-panel')) return;
+  if(e.cancelable) e.preventDefault();
+  var p=parseInt(z.id.slice(3),10), pod=e.target.closest('.xpod'), i=pod?parseInt(pod.getAttribute('data-i'),10):-1;
+  X.ptr[e.pointerId]={p:p,i:i};
+  try{ if(e.target.releasePointerCapture) e.target.releasePointerCapture(e.pointerId); }catch(_){}
+  if(!X.on) return;
+  var st=X.state;
+  if(st==='place' || st==='count'){ xPaint(); xCheckReady(); return; }
+  if(st==='wait'){ xFault(p,'Salida en falso -1'); return; }
+  if(st!=='stim') return;
+  if(xFingers(p)>2){ xFault(p,'M&aacute;s de 2 dedos -1'); return; }
+  var k=X.tgt[p].indexOf(i);
+  if(k<0){ xFault(p,'Fuera -1'); return; }
+  if(X.land[p][k]) return;
+  var now=performance.now(), o=X.land[p][1-k];
+  if(o && now-o>NORMAL_SIMULT_MS){ xFault(p,'De uno en uno -1'); return; }
+  X.land[p][k]=now; sndHit(); xPaint();
+  if(X.land[p][1-k]) xPoint(p,'Punto &middot; '+Math.round(now-X.t0)+' ms');
+}
+function xUp(e){
+  var q=X.ptr[e.pointerId]; if(!q) return;
+  delete X.ptr[e.pointerId];
+  if(!X.on) return;
+  if(X.state==='place' || X.state==='count'){ xPaint(); xCheckReady(); return; }
+  if(X.state==='wait'){ xFault(q.p,'Salida en falso -1'); return; }
+  if(X.state==='stim') xPaint();
+}
+function xInit(){
+  var b=$('x2Btn');
+  b.addEventListener('click', function(e){ e.stopPropagation(); xToggle(b); });   /* no pasa por seg(): no quita la seleccion de Normal */
+  var sec=$('x2');
+  sec.addEventListener('pointerdown', xDown, {passive:false});
+  document.addEventListener('pointerup', xUp, true);
+  document.addEventListener('pointercancel', xUp, true);
+  sec.addEventListener('click', function(e){
+    var t=e.target.closest ? e.target.closest('[data-x]') : null; if(!t) return;
+    var a=t.getAttribute('data-x');
+    if(a==='start' || a==='next') xReady(parseInt(t.closest('.x2-zone').id.slice(3),10),t,a);
+    else if(a==='again') xBegin();
+    else if(a==='home') xHome();
+  });
+  $('x2Stop').addEventListener('click', xStop);
+}
+
+seg('seg1'); seg('seg2'); seg('seg3'); xInit(); trialInit(); normalInit(); extremoInit(); limiteInit(); touchGuardInit(); sizeInit();
 segRank('seg1R'); segRank('seg2R'); segRank('seg3R');
 $('btnRank2').addEventListener('click', showRanking);
 $('btnGuardar').addEventListener('click', function(){
@@ -2236,6 +2495,7 @@ setPlacementMsg = function(t){
 
 document.addEventListener('pointerdown', function(e){
   if(e.pointerType!=='touch' && e.pointerType!=='pen' && e.pointerType!=='mouse') return;
+  if(document.body.classList.contains('x2-active')) return;   /* x2: sin ancla */
   /* ya anclado de verdad (el dedo sigue en pantalla): no re-capturar */
   if(ANC.pid!==null && TOUCHES[ANC.pid]) return;
   if(!ancHit(e)) return;
